@@ -1,0 +1,605 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>MLE League Stats</title>
+<style>
+:root {
+  color-scheme: light;
+  --page: #f9f9f7; --surface: #fcfcfb; --ink: #0b0b0b; --ink2: #52514e; --muted: #898781;
+  --grid: #e1e0d9; --axis: #c3c2b7; --border: rgba(11,11,11,.10);
+  --s1: #2a78d6; --s2: #eb6834; --lo: #2a78d6; --mid: #f0efec; --hi: #e34948;
+  --good: #0ca30c; --bad: #d03b3b; --accent-bg: rgba(42,120,214,.10);
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --page: #0d0d0d; --surface: #1a1a19; --ink: #ffffff; --ink2: #c3c2b7; --muted: #898781;
+    --grid: #2c2c2a; --axis: #383835; --border: rgba(255,255,255,.10);
+    --s1: #3987e5; --s2: #d95926; --lo: #3987e5; --mid: #383835; --hi: #e66767;
+    --accent-bg: rgba(57,135,229,.18);
+  }
+}
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --page: #0d0d0d; --surface: #1a1a19; --ink: #ffffff; --ink2: #c3c2b7; --muted: #898781;
+  --grid: #2c2c2a; --axis: #383835; --border: rgba(255,255,255,.10);
+  --s1: #3987e5; --s2: #d95926; --lo: #3987e5; --mid: #383835; --hi: #e66767;
+  --accent-bg: rgba(57,135,229,.18);
+}
+
+* { box-sizing: border-box; }
+body {
+  margin: 0; background: var(--page); color: var(--ink);
+  font: 14px/1.45 system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+.wrap { max-width: 1200px; margin: 0 auto; padding: 20px 16px 48px; }
+header { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 8px 16px; }
+h1 { font-size: 22px; margin: 0; font-weight: 650; }
+.meta { color: var(--ink2); font-size: 13px; display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+button.link { background: none; border: 1px solid var(--border); color: var(--ink); border-radius: 6px; padding: 4px 10px; font: inherit; cursor: pointer; }
+button.link:hover { background: var(--accent-bg); }
+
+nav.tabs { display: flex; gap: 4px; margin: 18px 0 16px; border-bottom: 1px solid var(--grid); overflow-x: auto; }
+nav.tabs button {
+  background: none; border: 0; border-bottom: 2px solid transparent; padding: 8px 12px; margin-bottom: -1px;
+  font: inherit; font-weight: 550; color: var(--ink2); cursor: pointer; white-space: nowrap;
+}
+nav.tabs button[aria-selected="true"] { color: var(--ink); border-bottom-color: var(--s1); }
+
+.filters { display: flex; flex-wrap: wrap; gap: 12px; margin-bottom: 16px; }
+.filters label { display: flex; flex-direction: column; font-size: 12px; color: var(--ink2); gap: 4px; min-width: 180px; flex: 0 1 240px; }
+select {
+  font: inherit; color: var(--ink); background: var(--surface); border: 1px solid var(--border);
+  border-radius: 6px; padding: 6px 8px; width: 100%;
+}
+
+.tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 12px; margin-bottom: 12px; }
+.tile, .card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; }
+.tile { padding: 14px 16px; }
+.tile .k { font-size: 12px; color: var(--ink2); }
+.tile .v { font-size: 28px; font-weight: 600; margin-top: 2px; }
+.tile .sub { font-size: 12px; color: var(--muted); margin-top: 2px; }
+@media (max-width: 520px) {
+  .tiles { grid-template-columns: 1fr 1fr; gap: 8px; }
+  .tile { padding: 10px 12px; }
+  .tile .v { font-size: 22px; }
+  .filters label { flex: 1 1 100%; }
+}
+
+.grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+@media (max-width: 820px) { .grid2 { grid-template-columns: 1fr; } }
+.card { padding: 16px; margin-bottom: 12px; min-width: 0; }
+.card h2 { font-size: 14px; font-weight: 600; margin: 0 0 4px; }
+.card .note { font-size: 12px; color: var(--ink2); margin: 0 0 12px; }
+
+.legend { display: flex; gap: 16px; flex-wrap: wrap; font-size: 12px; color: var(--ink2); margin-bottom: 10px; }
+.legend span { display: inline-flex; align-items: center; gap: 6px; }
+.sw { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
+
+/* dot plot */
+.dp-row { display: grid; grid-template-columns: minmax(90px, 170px) 1fr; align-items: center; min-height: 30px; }
+.dp-label { font-size: 12px; color: var(--ink2); padding-right: 10px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.dp-track { position: relative; height: 30px; }
+.dp-grid { position: absolute; top: 0; bottom: 0; width: 1px; background: var(--grid); }
+.dp-line { position: absolute; top: 14px; height: 2px; background: var(--axis); }
+.dp-dot { position: absolute; top: 10px; width: 10px; height: 10px; margin-left: -5px; border-radius: 50%; box-shadow: 0 0 0 2px var(--surface); cursor: default; }
+.dp-dot::after { content: ""; position: absolute; inset: -8px; }
+.dp-axis { position: relative; height: 18px; }
+.dp-axis span { position: absolute; transform: translateX(-50%); font-size: 11px; color: var(--muted); font-variant-numeric: tabular-nums; }
+
+/* column chart */
+.cc { display: grid; grid-template-columns: 40px 1fr; }
+.cc-y { position: relative; height: 200px; }
+.cc-y span { position: absolute; right: 6px; transform: translateY(50%); font-size: 11px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.cc-plot { position: relative; height: 200px; border-bottom: 1px solid var(--axis); }
+.cc-gl { position: absolute; left: 0; right: 0; height: 1px; background: var(--grid); }
+.cc-bars { position: absolute; inset: 0; display: flex; align-items: flex-end; gap: 2px; padding: 0 2px; }
+.cc-col { flex: 1; height: 100%; display: flex; flex-direction: column; justify-content: flex-end; align-items: center; position: relative; }
+.cc-bar { width: 100%; max-width: 40px; border-radius: 4px 4px 0 0; min-height: 1px; }
+.cc-val { font-size: 11px; color: var(--ink); margin-bottom: 2px; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.cc-x { display: flex; gap: 2px; padding: 4px 2px 0; grid-column: 2; }
+.cc-x span { flex: 1; text-align: center; font-size: 11px; color: var(--muted); }
+
+/* donut */
+.donut { display: flex; align-items: center; gap: 20px; flex-wrap: wrap; }
+.donut svg { width: 150px; height: 150px; flex: none; }
+.donut .dl { display: flex; flex-direction: column; gap: 8px; font-size: 13px; }
+.donut .dl b { font-variant-numeric: tabular-nums; }
+
+/* tables */
+.scroll { overflow-x: auto; }
+table { border-collapse: collapse; width: 100%; font-size: 13px; }
+th { text-align: left; font-weight: 600; color: var(--ink); background: var(--mid); padding: 7px 10px; white-space: nowrap; }
+td { padding: 6px 10px; border-top: 1px solid var(--grid); white-space: nowrap; }
+td.n, th.n { text-align: right; font-variant-numeric: tabular-nums; }
+th.sortable { cursor: pointer; user-select: none; }
+th.sortable:hover { text-decoration: underline; }
+
+/* heatmap */
+.hm td.c { text-align: center; font-variant-numeric: tabular-nums; border: 1px solid var(--surface); cursor: default; }
+.hm th:first-child, .hm td:first-child { position: sticky; left: 0; background: var(--surface); z-index: 1; }
+.hm th:first-child { background: var(--mid); }
+.hm-legend { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--ink2); margin-bottom: 10px; flex-wrap: wrap; }
+.hm-grad { width: 160px; height: 10px; border-radius: 5px; }
+
+.empty { color: var(--ink2); padding: 24px 0; text-align: center; }
+.status { padding: 40px 0; text-align: center; color: var(--ink2); }
+.error { background: var(--surface); border: 1px solid var(--bad); border-radius: 10px; padding: 16px; margin: 20px 0; }
+.error b { color: var(--bad); }
+
+#tip {
+  position: fixed; pointer-events: none; z-index: 10; background: var(--surface); color: var(--ink);
+  border: 1px solid var(--border); border-radius: 8px; padding: 8px 10px; font-size: 12px; line-height: 1.4;
+  box-shadow: 0 4px 16px rgba(0,0,0,.15); white-space: pre; display: none; max-width: 320px;
+}
+footer { margin-top: 24px; font-size: 12px; color: var(--muted); }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>MLE League Stats</h1>
+    <div class="meta"><span id="meta">Loading data…</span><button class="link" id="reload" type="button">Reload data</button></div>
+  </header>
+  <nav class="tabs" role="tablist">
+    <button role="tab" data-tab="overview" aria-selected="true">League Overview</button>
+    <button role="tab" data-tab="player" aria-selected="false">Player Profile</button>
+    <button role="tab" data-tab="sectors" aria-selected="false">Sector Analysis</button>
+  </nav>
+  <main id="main"><div class="status">Loading data from the Google Sheet…</div></main>
+  <footer>Data loads live from the league Google Sheet each time this page opens. Only rounds marked valid are counted. Times are in seconds.</footer>
+</div>
+<div id="tip" role="tooltip"></div>
+
+<script>
+const SHEET_URL = 'https://docs.google.com/spreadsheets/d/1VL_z5cmfBfNaaDCDLwzmpyM-YM0HwbNsV-tO3N4GpKQ/export?format=csv&gid=1621921211';
+
+// ---------- data loading ----------
+
+function parseCSV(text) {
+  const rows = []; let row = []; let field = ''; let q = false;
+  for (let i = 0; i < text.length; i++) {
+    const c = text[i];
+    if (q) {
+      if (c === '"') { if (text[i + 1] === '"') { field += '"'; i++; } else q = false; }
+      else field += c;
+    } else if (c === '"') q = true;
+    else if (c === ',') { row.push(field); field = ''; }
+    else if (c === '\n') { row.push(field); rows.push(row); row = []; field = ''; }
+    else if (c !== '\r') field += c;
+  }
+  if (field !== '' || row.length) { row.push(field); rows.push(row); }
+  return rows;
+}
+
+function buildRuns(rows) {
+  const header = rows[0];
+  const col = name => {
+    const i = header.indexOf(name);
+    if (i < 0) throw new Error(`The sheet has no column named "${name}". Was it renamed or removed?`);
+    return i;
+  };
+  const C = {
+    match: col('Match ID'), map: col('Map Name'), round: col('Round Index'), player: col('Player Name'),
+    finished: col('Finished?'), team: col('Team Name'), respawns: col('Respawns'), points: col('Round Points'),
+    win: col('Round Win?'), final: col('Final Time'), respByCP: col('Respawns by CP'),
+    lossByCP: col('Respawn Time Loss'), valid: col('Valid Round for Player?'), cp1: col('CP1'),
+  };
+  const cpCols = [];
+  for (let n = 1; header.indexOf('CP' + n) >= 0; n++) cpCols.push(header.indexOf('CP' + n));
+
+  const runs = [];
+  for (let i = 1; i < rows.length; i++) {
+    const r = rows[i];
+    if (!r[C.match]) continue;          // empty rows at the bottom of the sheet
+    if (r[C.valid] !== '1') continue;   // rounds that don't count
+    const sheetRow = i + 1;
+    const num = (v, name) => {
+      if (v === '' || v == null) return null;
+      const x = Number(v);
+      if (Number.isNaN(x)) throw new Error(`Sheet row ${sheetRow}: "${name}" should be a number but is "${v}".`);
+      return x;
+    };
+    const arr = (v, name) => {
+      try { const a = JSON.parse(v); if (!Array.isArray(a)) throw 0; return a; }
+      catch { throw new Error(`Sheet row ${sheetRow}: couldn't read "${name}" as a list of numbers (value: "${v}").`); }
+    };
+    const cum = [];
+    for (const c of cpCols) { if (r[c] === '') break; cum.push(num(r[c], 'CP')); }
+    const resp = arr(r[C.respByCP], 'Respawns by CP');
+    const loss = arr(r[C.lossByCP], 'Respawn Time Loss');
+    if (resp.length < cum.length || loss.length < cum.length)
+      throw new Error(`Sheet row ${sheetRow}: respawn lists are shorter than the number of checkpoints.`);
+    const splits = cum.map((v, k) => ({ cp: k + 1, seg: v - (k ? cum[k - 1] : 0), resp: resp[k], loss: loss[k] }));
+    const match = r[C.match], map = r[C.map], round = r[C.round], player = r[C.player];
+    runs.push({
+      id: `${match} | ${map} | ${round} | ${player}`,
+      match, map, round: num(round, 'Round Index'), player, team: r[C.team],
+      finished: r[C.finished] === 'TRUE',
+      final: num(r[C.final], 'Final Time'),
+      respawns: num(r[C.respawns], 'Respawns') || 0,
+      points: num(r[C.points], 'Round Points') || 0,
+      win: num(r[C.win], 'Round Win?') || 0,
+      respLoss: loss.reduce((a, b) => a + b, 0),
+      splits,
+    });
+  }
+  return runs;
+}
+
+// ---------- measures ----------
+
+const sum = a => a.reduce((x, y) => x + y, 0);
+const mean = a => a.length ? sum(a) / a.length : null;
+
+function agg(runs) {
+  const n = runs.length;
+  const times = runs.map(r => r.final).filter(v => v != null);
+  return {
+    n,
+    finishRate: n ? runs.filter(r => r.finished).length / n : null,
+    best: times.length ? Math.min(...times) / 1000 : null,
+    avg: times.length ? mean(times) / 1000 : null,
+    winRate: n ? sum(runs.map(r => r.win)) / n : null,
+    avgPts: n ? sum(runs.map(r => r.points)) / n : null,
+    respPerRound: n ? sum(runs.map(r => r.respawns)) / n : null,
+    avgLoss: n ? mean(runs.map(r => r.respLoss)) / 1000 : null,
+  };
+}
+
+function sectorStats(runs) {
+  const by = new Map();
+  for (const r of runs) for (const s of r.splits) {
+    if (!by.has(s.cp)) by.set(s.cp, { segs: [], loss: 0 });
+    const b = by.get(s.cp); b.segs.push(s.seg); b.loss += s.loss;
+  }
+  return [...by.entries()].sort((a, b) => a[0] - b[0]).map(([cp, b]) => {
+    const best = Math.min(...b.segs) / 1000, avg = mean(b.segs) / 1000;
+    return { cp, best, avg, gap: avg - best, loss: b.loss / 1000, n: b.segs.length };
+  });
+}
+
+// ---------- formatting ----------
+
+const fS = v => v == null || Number.isNaN(v) ? '–' : v.toFixed(3);
+const fP = v => v == null ? '–' : (v * 100).toFixed(1) + '%';
+const f2 = v => v == null ? '–' : v.toFixed(2);
+const fN = v => v == null ? '–' : v.toLocaleString();
+const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const shortMap = m => m.replace(/^MLE - /, '');
+const byName = (a, b) => a.localeCompare(b, undefined, { sensitivity: 'base' });
+const uniq = (runs, k) => [...new Set(runs.map(r => r[k]).filter(Boolean))].sort(byName);
+
+function niceStep(range, count) {
+  const raw = range / count, mag = Math.pow(10, Math.floor(Math.log10(raw))), f = raw / mag;
+  return (f <= 1 ? 1 : f <= 2 ? 2 : f <= 2.5 ? 2.5 : f <= 5 ? 5 : 10) * mag;
+}
+function niceTicks(lo, hi, count) {
+  if (hi <= lo) hi = lo + 1;
+  const step = niceStep(hi - lo, count), start = Math.floor(lo / step) * step, end = Math.ceil(hi / step) * step;
+  const t = []; for (let v = start; v <= end + step / 2; v += step) t.push(+v.toFixed(6));
+  return t;
+}
+
+function cssVar(name) { return getComputedStyle(document.documentElement).getPropertyValue(name).trim(); }
+function hexRgb(h) { h = h.replace('#', ''); return [0, 2, 4].map(i => parseInt(h.slice(i, i + 2), 16)); }
+function mix(a, b, t) {
+  const A = hexRgb(a), B = hexRgb(b);
+  const lin = c => { c /= 255; return c <= 0.04045 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4); };
+  const gam = c => Math.round(255 * (c <= 0.0031308 ? c * 12.92 : 1.055 * Math.pow(c, 1 / 2.4) - 0.055));
+  return A.map((v, i) => gam(lin(v) + (lin(B[i]) - lin(v)) * t));
+}
+function lum([r, g, b]) {
+  const l = c => { c /= 255; return c <= 0.03928 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4); };
+  return 0.2126 * l(r) + 0.7152 * l(g) + 0.0722 * l(b);
+}
+
+// ---------- chart components ----------
+
+function tile(k, v, sub) {
+  return `<div class="tile"><div class="k">${esc(k)}</div><div class="v">${v}</div>${sub ? `<div class="sub">${sub}</div>` : ''}</div>`;
+}
+
+function dotPlot(items, nameA, nameB) {
+  if (!items.length) return `<div class="empty">No rounds match these filters.</div>`;
+  const vals = items.flatMap(i => [i.a, i.b]).filter(v => v != null);
+  const ticks = niceTicks(Math.min(...vals), Math.max(...vals), 5);
+  const lo = ticks[0], hi = ticks[ticks.length - 1], pct = v => ((v - lo) / (hi - lo)) * 100;
+  const grid = ticks.map(t => `<div class="dp-grid" style="left:${pct(t)}%"></div>`).join('');
+  const rows = items.map(i => `
+    <div class="dp-row">
+      <div class="dp-label" title="${esc(i.label)}">${esc(i.label)}</div>
+      <div class="dp-track">${grid}
+        ${i.a != null && i.b != null ? `<div class="dp-line" style="left:${pct(i.a)}%;width:${pct(i.b) - pct(i.a)}%"></div>` : ''}
+        ${i.a != null ? `<div class="dp-dot" style="left:${pct(i.a)}%;background:var(--s1)" data-tip="${esc(i.label)}\n${nameA}: ${fS(i.a)}s"></div>` : ''}
+        ${i.b != null ? `<div class="dp-dot" style="left:${pct(i.b)}%;background:var(--s2)" data-tip="${esc(i.label)}\n${nameB}: ${fS(i.b)}s"></div>` : ''}
+      </div>
+    </div>`).join('');
+  const axis = `<div class="dp-row"><div></div><div class="dp-axis">${ticks.map(t => `<span style="left:${pct(t)}%">${t}s</span>`).join('')}</div></div>`;
+  return `<div class="legend"><span><i class="sw" style="background:var(--s1)"></i>${nameA}</span><span><i class="sw" style="background:var(--s2)"></i>${nameB}</span></div>${rows}${axis}`;
+}
+
+function colChart(items, color, unit) {
+  if (!items.length) return `<div class="empty">No data for this selection.</div>`;
+  const max = Math.max(...items.map(i => i.value), 0);
+  const ticks = niceTicks(0, max || 1, 4), top = ticks[ticks.length - 1];
+  const pct = v => (v / top) * 100;
+  const maxIdx = items.findIndex(i => i.value === max);
+  return `<div class="cc">
+    <div class="cc-y">${ticks.map(t => `<span style="bottom:${pct(t)}%">${t}${unit}</span>`).join('')}</div>
+    <div class="cc-plot">
+      ${ticks.map(t => `<div class="cc-gl" style="bottom:${pct(t)}%"></div>`).join('')}
+      <div class="cc-bars">${items.map((i, k) => `
+        <div class="cc-col" data-tip="${esc(i.tip)}">
+          ${k === maxIdx && max > 0 ? `<div class="cc-val">${i.value.toFixed(2)}${unit}</div>` : ''}
+          <div class="cc-bar" style="height:${pct(i.value)}%;background:${color}"></div>
+        </div>`).join('')}
+      </div>
+    </div>
+    <div class="cc-x">${items.map(i => `<span>${esc(i.label)}</span>`).join('')}</div>
+  </div>`;
+}
+
+function donut(fin, dnf) {
+  const total = fin + dnf;
+  if (!total) return `<div class="empty">No rounds match these filters.</div>`;
+  const r = 46, C = 2 * Math.PI * r, gap = fin && dnf ? 2 : 0;
+  const a = (fin / total) * C, b = (dnf / total) * C;
+  return `<div class="donut">
+    <svg viewBox="0 0 120 120" role="img" aria-label="Finished ${fin}, DNF ${dnf}">
+      <g transform="rotate(-90 60 60)" fill="none" stroke-width="16">
+        ${fin ? `<circle cx="60" cy="60" r="${r}" stroke="var(--s1)" stroke-dasharray="${Math.max(a - gap, 0)} ${C}" data-tip="Finished\n${fN(fin)} rounds (${fP(fin / total)})"/>` : ''}
+        ${dnf ? `<circle cx="60" cy="60" r="${r}" stroke="var(--bad)" stroke-dasharray="${Math.max(b - gap, 0)} ${C}" stroke-dashoffset="${-a}" data-tip="DNF\n${fN(dnf)} rounds (${fP(dnf / total)})"/>` : ''}
+      </g>
+      <text x="60" y="58" text-anchor="middle" font-size="20" font-weight="600" fill="var(--ink)">${fP(fin / total)}</text>
+      <text x="60" y="76" text-anchor="middle" font-size="10" fill="var(--ink2)">finished</text>
+    </svg>
+    <div class="dl">
+      <span><i class="sw" style="background:var(--s1)"></i> Finished <b>${fN(fin)}</b> (${fP(fin / total)})</span>
+      <span><i class="sw" style="background:var(--bad)"></i> DNF <b>${fN(dnf)}</b> (${fP(dnf / total)})</span>
+    </div>
+  </div>`;
+}
+
+function table(cols, rows, sortKey, sortDir, id) {
+  if (!rows.length) return `<div class="empty">No rounds match these filters.</div>`;
+  const sorted = [...rows].sort((a, b) => {
+    const x = a[sortKey], y = b[sortKey];
+    if (x == null) return 1; if (y == null) return -1;
+    const c = typeof x === 'string' ? byName(x, y) : x - y;
+    return sortDir === 'asc' ? c : -c;
+  });
+  return `<div class="scroll"><table>
+    <thead><tr>${cols.map(c => `<th class="sortable ${c.num ? 'n' : ''}" data-sort="${id}:${c.key}">${esc(c.label)}${c.key === sortKey ? (sortDir === 'asc' ? ' ▲' : ' ▼') : ''}</th>`).join('')}</tr></thead>
+    <tbody>${sorted.map(r => `<tr>${cols.map(c => `<td class="${c.num ? 'n' : ''}">${c.fmt ? c.fmt(r[c.key]) : esc(r[c.key])}</td>`).join('')}</tr>`).join('')}</tbody>
+  </table></div>`;
+}
+
+// ---------- pages ----------
+
+let RUNS = [];
+const state = {
+  tab: 'overview',
+  ov: { map: '', team: '', match: '' },
+  pl: { player: '', map: '' },
+  sec: { map: '' },
+  sort: { teams: ['winRate', 'desc'], plmaps: ['best', 'asc'] },
+};
+
+function select(id, label, options, value, allLabel) {
+  return `<label>${esc(label)}<select data-f="${id}">
+    ${allLabel ? `<option value="">${esc(allLabel)}</option>` : ''}
+    ${options.map(o => `<option value="${esc(o.value ?? o)}" ${(o.value ?? o) === value ? 'selected' : ''}>${esc(o.label ?? o)}</option>`).join('')}
+  </select></label>`;
+}
+
+function renderOverview() {
+  const f = state.ov;
+  const runs = RUNS.filter(r => (!f.map || r.map === f.map) && (!f.team || r.team === f.team) && (!f.match || r.match === f.match));
+  const a = agg(runs);
+  const maps = uniq(runs, 'map').map(m => { const s = agg(runs.filter(r => r.map === m)); return { label: shortMap(m), a: s.best, b: s.avg }; })
+    .sort((x, y) => (x.a ?? 1e9) - (y.a ?? 1e9));
+  const teams = uniq(runs, 'team').map(t => { const s = agg(runs.filter(r => r.team === t)); return { team: t, ...s }; });
+  return `
+    <div class="filters">
+      ${select('ov.map', 'Map', uniq(RUNS, 'map').map(m => ({ value: m, label: shortMap(m) })), f.map, 'All maps')}
+      ${select('ov.team', 'Team', uniq(RUNS, 'team'), f.team, 'All teams')}
+      ${select('ov.match', 'Match', uniq(RUNS, 'match'), f.match, 'All matches')}
+    </div>
+    <div class="tiles">
+      ${tile('Rounds played', fN(a.n))}
+      ${tile('Finish rate', fP(a.finishRate))}
+      ${tile('Avg time', fS(a.avg) + 's')}
+      ${tile('Respawns per round', f2(a.respPerRound))}
+    </div>
+    <div class="grid2">
+      <div class="card"><h2>Best vs average time by map</h2><p class="note">Sorted fastest first. The gap between the dots is how far the field sits from the best run.</p>${dotPlot(maps, 'Best time', 'Avg time')}</div>
+      <div class="card"><h2>Team standings</h2><p class="note">Click a column header to sort.</p>
+        ${table([
+          { key: 'team', label: 'Team' },
+          { key: 'winRate', label: 'Round win rate', num: true, fmt: fP },
+          { key: 'avgPts', label: 'Avg points', num: true, fmt: f2 },
+          { key: 'finishRate', label: 'Finish rate', num: true, fmt: fP },
+          { key: 'n', label: 'Rounds', num: true, fmt: fN },
+        ], teams, ...state.sort.teams, 'teams')}
+      </div>
+    </div>`;
+}
+
+function renderPlayer() {
+  const f = state.pl;
+  if (!f.player) {
+    const counts = new Map(); RUNS.forEach(r => counts.set(r.player, (counts.get(r.player) || 0) + 1));
+    f.player = [...counts.entries()].sort((a, b) => b[1] - a[1])[0]?.[0] || '';
+  }
+  const runs = RUNS.filter(r => r.player === f.player && (!f.map || r.map === f.map));
+  const a = agg(runs);
+  const fin = runs.filter(r => r.finished).length;
+  const maps = uniq(runs, 'map').map(m => ({ map: shortMap(m), ...agg(runs.filter(r => r.map === m)) }));
+  const team = uniq(runs, 'team').join(', ');
+  return `
+    <div class="filters">
+      ${select('pl.player', 'Player', uniq(RUNS, 'player'), f.player)}
+      ${select('pl.map', 'Map', uniq(RUNS, 'map').map(m => ({ value: m, label: shortMap(m) })), f.map, 'All maps')}
+    </div>
+    <div class="tiles">
+      ${tile('Best time', fS(a.best) + 's', team ? esc(team) : '')}
+      ${tile('Avg time', fS(a.avg) + 's')}
+      ${tile('Round win rate', fP(a.winRate))}
+      ${tile('Avg respawn loss', fS(a.avgLoss) + 's', 'per round')}
+    </div>
+    <div class="grid2">
+      <div class="card"><h2>Finish record</h2><p class="note">${fN(a.n)} rounds</p>${donut(fin, a.n - fin)}</div>
+      <div class="card"><h2>By map</h2><p class="note">Click a column header to sort.</p>
+        ${table([
+          { key: 'map', label: 'Map' },
+          { key: 'best', label: 'Best', num: true, fmt: fS },
+          { key: 'avg', label: 'Avg', num: true, fmt: fS },
+          { key: 'finishRate', label: 'Finish rate', num: true, fmt: fP },
+          { key: 'respPerRound', label: 'Respawns / round', num: true, fmt: f2 },
+          { key: 'n', label: 'Rounds', num: true, fmt: fN },
+        ], maps, ...state.sort.plmaps, 'plmaps')}
+      </div>
+    </div>`;
+}
+
+function heatmap(runs) {
+  const players = uniq(runs, 'player');
+  if (!players.length) return `<div class="empty">No rounds on this map.</div>`;
+  const cps = [...new Set(runs.flatMap(r => r.splits.map(s => s.cp)))].sort((a, b) => a - b);
+  const rows = players.map(p => {
+    const pr = runs.filter(r => r.player === p);
+    const segs = {};
+    for (const cp of cps) {
+      const v = pr.flatMap(r => r.splits.filter(s => s.cp === cp).map(s => s.seg));
+      segs[cp] = v.length ? { avg: mean(v) / 1000, n: v.length } : null;
+    }
+    return { player: p, n: pr.length, avg: agg(pr).avg, segs };
+  }).sort((a, b) => (a.avg ?? 1e9) - (b.avg ?? 1e9));
+
+  const q = (arr, p) => { const s = [...arr].sort((a, b) => a - b); const i = (s.length - 1) * p, lo = Math.floor(i); return s[lo] + (s[Math.ceil(i)] - s[lo]) * (i - lo); };
+  const colStats = {};
+  for (const cp of cps) {
+    const v = rows.map(r => r.segs[cp]?.avg).filter(x => x != null);
+    colStats[cp] = { med: q(v, 0.5), p10: q(v, 0.1), p90: q(v, 0.9) };
+  }
+  const lo = cssVar('--lo'), mid = cssVar('--mid'), hi = cssVar('--hi');
+  const cell = (cp, s, player) => {
+    if (!s) return `<td class="c"></td>`;
+    const { med, p10, p90 } = colStats[cp];
+    let t = s.avg < med ? -(med - s.avg) / ((med - p10) || 1) : (s.avg - med) / ((p90 - med) || 1);
+    t = Math.max(-1, Math.min(1, t));
+    const rgb = t < 0 ? mix(mid, lo, -t) : mix(mid, hi, t);
+    const ink = lum(rgb) > 0.35 ? '#0b0b0b' : '#ffffff';
+    const diff = s.avg - med;
+    return `<td class="c" style="background:rgb(${rgb});color:${ink}" data-tip="${esc(player)} · CP${cp}\nAvg ${fS(s.avg)}s over ${s.n} runs\n${diff <= 0 ? fS(-diff) + 's faster' : fS(diff) + 's slower'} than the sector median">${s.avg.toFixed(2)}</td>`;
+  };
+  return `
+    <div class="hm-legend">Faster
+      <span class="hm-grad" style="background:linear-gradient(90deg, var(--lo), var(--mid), var(--hi))"></span>
+      Slower (vs. sector median)</div>
+    <div class="scroll"><table class="hm">
+      <thead><tr><th>Player</th><th class="n">Runs</th><th class="n">Avg time</th>${cps.map(c => `<th class="n">CP${c}</th>`).join('')}</tr></thead>
+      <tbody>${rows.map(r => `<tr><td>${esc(r.player)}</td><td class="n">${r.n}</td><td class="n">${fS(r.avg)}</td>${cps.map(c => cell(c, r.segs[c], r.player)).join('')}</tr>`).join('')}</tbody>
+    </table></div>`;
+}
+
+function renderSectors() {
+  const f = state.sec;
+  const maps = uniq(RUNS, 'map');
+  if (!f.map) f.map = maps[0] || '';
+  const runs = RUNS.filter(r => r.map === f.map);
+  const a = agg(runs);
+  const sec = sectorStats(runs);
+  const sob = sec.length ? sum(sec.map(s => s.best)) : null;
+  const bestRun = runs.filter(r => r.final != null).sort((x, y) => x.final - y.final)[0];
+  return `
+    <div class="filters">${select('sec.map', 'Map', maps.map(m => ({ value: m, label: shortMap(m) })), f.map)}</div>
+    <div class="tiles">
+      ${tile('Fastest actual run', fS(a.best) + 's', bestRun ? esc(bestRun.player) : '')}
+      ${tile('Theoretical best', fS(sob) + 's', 'best time in every sector, added up')}
+      ${tile('Time left on the table', fS(a.best != null && sob != null ? a.best - sob : null) + 's', 'fastest run minus theoretical best')}
+    </div>
+    <div class="card"><h2>Sector heatmap</h2>
+      <p class="note">Average time per sector for each player, fastest overall at the top. Colour compares players within the same sector, so read down a column.</p>
+      ${heatmap(runs)}
+    </div>
+    <div class="grid2">
+      <div class="card"><h2>Average time lost vs best, by sector</h2><p class="note">Tall bars are the least consistent sectors.</p>
+        ${colChart(sec.map(s => ({ label: 'CP' + s.cp, value: s.gap, tip: `CP${s.cp}\nAvg ${fS(s.avg)}s, best ${fS(s.best)}s\nGap ${fS(s.gap)}s over ${s.n} runs` })), 'var(--s1)', 's')}
+      </div>
+      <div class="card"><h2>Total time lost to respawns, by sector</h2><p class="note">All runs on this map combined.</p>
+        ${colChart(sec.map(s => ({ label: 'CP' + s.cp, value: s.loss, tip: `CP${s.cp}\n${fS(s.loss)}s lost to respawns` })), 'var(--s2)', 's')}
+      </div>
+    </div>`;
+}
+
+const main = document.getElementById('main');
+function render() {
+  document.querySelectorAll('nav.tabs button').forEach(b => b.setAttribute('aria-selected', String(b.dataset.tab === state.tab)));
+  if (!RUNS.length) return;
+  main.innerHTML = state.tab === 'player' ? renderPlayer() : state.tab === 'sectors' ? renderSectors() : renderOverview();
+}
+
+// ---------- events ----------
+
+document.querySelector('nav.tabs').addEventListener('click', e => {
+  const b = e.target.closest('button[data-tab]'); if (!b) return;
+  state.tab = b.dataset.tab; history.replaceState(null, '', '#' + state.tab); render();
+});
+main.addEventListener('change', e => {
+  const s = e.target.closest('select[data-f]'); if (!s) return;
+  const [grp, key] = s.dataset.f.split('.'); state[grp][key] = s.value; render();
+});
+main.addEventListener('click', e => {
+  const th = e.target.closest('th[data-sort]'); if (!th) return;
+  const [id, key] = th.dataset.sort.split(':');
+  const [cur, dir] = state.sort[id];
+  state.sort[id] = [key, cur === key ? (dir === 'asc' ? 'desc' : 'asc') : (key === 'team' || key === 'map' ? 'asc' : 'desc')];
+  render();
+});
+
+const tip = document.getElementById('tip');
+document.addEventListener('pointermove', e => {
+  const t = e.target.closest && e.target.closest('[data-tip]');
+  if (!t) { tip.style.display = 'none'; return; }
+  tip.textContent = t.dataset.tip; tip.style.display = 'block';
+  const w = tip.offsetWidth, h = tip.offsetHeight;
+  let x = e.clientX + 14, y = e.clientY + 14;
+  if (x + w > innerWidth - 8) x = e.clientX - w - 14;
+  if (y + h > innerHeight - 8) y = e.clientY - h - 14;
+  tip.style.left = Math.max(8, x) + 'px'; tip.style.top = Math.max(8, y) + 'px';
+});
+document.addEventListener('pointerleave', () => tip.style.display = 'none');
+matchMedia('(prefers-color-scheme: dark)').addEventListener('change', render);
+
+async function load() {
+  const meta = document.getElementById('meta');
+  meta.textContent = 'Loading data…';
+  try {
+    const res = await fetch(SHEET_URL, { cache: 'no-store' });
+    if (!res.ok) throw new Error(`The Google Sheet didn't respond (HTTP ${res.status}). Check that it's shared as "Anyone with the link can view".`);
+    RUNS = buildRuns(parseCSV(await res.text()));
+    if (!RUNS.length) throw new Error('The sheet loaded but has no valid rounds.');
+    meta.textContent = `${RUNS.length.toLocaleString()} valid rounds · loaded ${new Date().toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}`;
+    render();
+  } catch (err) {
+    RUNS = [];
+    meta.textContent = 'Data failed to load';
+    main.innerHTML = `<div class="error"><b>Couldn't load the stats.</b><p>${esc(err.message)}</p></div>`;
+  }
+}
+document.getElementById('reload').addEventListener('click', load);
+
+function tabFromHash() {
+  const h = location.hash.slice(1);
+  if (['overview', 'player', 'sectors'].includes(h)) state.tab = h;
+}
+addEventListener('hashchange', () => { tabFromHash(); render(); });
+tabFromHash();
+load();
+</script>
+</body>
+</html>

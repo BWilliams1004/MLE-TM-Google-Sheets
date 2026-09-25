@@ -575,23 +575,49 @@ document.addEventListener('pointermove', e => {
 document.addEventListener('pointerleave', () => tip.style.display = 'none');
 matchMedia('(prefers-color-scheme: dark)').addEventListener('change', render);
 
-async function load() {
-  const meta = document.getElementById('meta');
-  meta.textContent = 'Loading data…';
+const REFRESH_MIN = 5;
+let lastText = '', lastChecked = 0;
+const clock = d => d.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+const meta = document.getElementById('meta');
+const metaText = () => `${RUNS.length.toLocaleString()} valid rounds · checked ${clock(new Date(lastChecked))} · auto-refreshes every ${REFRESH_MIN} min`;
+
+function showError(msg) {
+  RUNS = []; lastText = '';
+  meta.textContent = 'Data failed to load';
+  main.innerHTML = `<div class="error"><b>Couldn't load the stats.</b><p>${esc(msg)}</p></div>`;
+}
+
+// background = true for timed refreshes: a dropped connection keeps the current numbers on screen,
+// but a problem with the sheet's data still replaces the page with the error.
+async function load(background = false) {
+  if (!background) meta.textContent = 'Loading data…';
+  let text;
   try {
     const res = await fetch(SHEET_URL, { cache: 'no-store' });
     if (!res.ok) throw new Error(`The Google Sheet didn't respond (HTTP ${res.status}). Check that it's shared as "Anyone with the link can view".`);
-    RUNS = buildRuns(parseCSV(await res.text()));
-    if (!RUNS.length) throw new Error('The sheet loaded but has no valid rounds.');
-    meta.textContent = `${RUNS.length.toLocaleString()} valid rounds · loaded ${new Date().toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}`;
+    text = await res.text();
+  } catch (err) {
+    if (background && RUNS.length) { meta.textContent = `${metaText()} · update failed at ${clock(new Date())}, retrying`; return; }
+    showError(err.message);
+    return;
+  }
+  lastChecked = Date.now();
+  if (text === lastText && RUNS.length) { meta.textContent = metaText(); return; }
+  try {
+    const runs = buildRuns(parseCSV(text));
+    if (!runs.length) throw new Error('The sheet loaded but has no valid rounds.');
+    RUNS = runs; lastText = text;
+    meta.textContent = metaText();
     render();
   } catch (err) {
-    RUNS = [];
-    meta.textContent = 'Data failed to load';
-    main.innerHTML = `<div class="error"><b>Couldn't load the stats.</b><p>${esc(err.message)}</p></div>`;
+    showError(err.message);
   }
 }
-document.getElementById('reload').addEventListener('click', load);
+document.getElementById('reload').addEventListener('click', () => load());
+setInterval(() => { if (document.visibilityState === 'visible') load(true); }, REFRESH_MIN * 60 * 1000);
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'visible' && Date.now() - lastChecked > REFRESH_MIN * 60 * 1000) load(true);
+});
 
 function tabFromHash() {
   const h = location.hash.slice(1);

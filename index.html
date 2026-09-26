@@ -387,6 +387,23 @@ function buildRuns(rows) {
     rows: recovered.map(r => r.sheetRow),
   });
 
+  // Glitched checkpoint data: a sector under a quarter of that sector's median time means the
+  // tracker logged checkpoints late (row 6619 has five checkpoints within 70 ms). The round still
+  // counts, but its sector times are left out of every sector stat.
+  const segMed = new Map();
+  for (const r of runs) for (const s of r.splits) {
+    const k = r.map + '\u0000' + s.cp;
+    if (!segMed.has(k)) segMed.set(k, []);
+    segMed.get(k).push(s.seg);
+  }
+  for (const [k, v] of segMed) segMed.set(k, median(v));
+  const glitched = runs.filter(r => r.splits.some(s => s.seg < 0.25 * segMed.get(r.map + '\u0000' + s.cp)));
+  for (const r of glitched) { r.splits = []; r.glitched = true; }
+  if (glitched.length) notes.push({
+    text: `${glitched.length} run${glitched.length > 1 ? 's have' : ' has'} impossible checkpoint times (a sector far faster than anyone could drive it). The round still counts, but its sector times are left out of Sector Analysis and Head-to-Head.`,
+    rows: glitched.map(r => r.sheetRow),
+  });
+
   // Pace: each finished run against the median finishing time on its map.
   const byMap = new Map();
   for (const r of runs) if (r.final != null) { if (!byMap.has(r.map)) byMap.set(r.map, []); byMap.get(r.map).push(r.final); }

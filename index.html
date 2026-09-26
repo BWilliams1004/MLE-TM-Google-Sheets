@@ -311,7 +311,7 @@ function buildRuns(rows) {
   };
   const C = {
     match: col('Match ID'), map: col('Map Name'), round: col('Round Index'), player: col('Player Name'),
-    finished: col('Finished?'), team: col('Team Name'), respawns: col('Respawns'), points: col('Round Points'),
+    finished: col('Finished?'), dnf: col('DNF?'), team: col('Team Name'), respawns: col('Respawns'), points: col('Round Points'),
     win: col('Round Win?'), final: col('Final Time'), respByCP: col('Respawns by CP'),
     lossByCP: col('Respawn Time Loss'), valid: col('Valid Round for Player?'), cp1: col('CP1'),
   };
@@ -348,6 +348,7 @@ function buildRuns(rows) {
       round: num(r[C.round], 'Round Index'),
       week: wk ? Number(wk[1]) : null,
       finished: r[C.finished] === 'TRUE',
+      dnf: r[C.dnf] === 'TRUE',
       final: num(r[C.final], 'Final Time'),
       respawns: num(r[C.respawns], 'Respawns') || 0,
       points: num(r[C.points], 'Round Points') || 0,
@@ -578,24 +579,26 @@ function diverging(rows, nameA, nameB) {
     }).join('')}`;
 }
 
-function donut(fin, dnf) {
-  const total = fin + dnf;
+// slices: [{ label, n, color, note }]; the first slice is the one shown as a % in the centre
+function donut(slices) {
+  const total = sum(slices.map(s => s.n));
   if (!total) return EMPTY();
-  const r = 46, C = 2 * Math.PI * r, gap = fin && dnf ? 2 : 0;
-  const a = (fin / total) * C, b = (dnf / total) * C;
-  const tFin = tipAttr('Finished', `${fN(fin)} rounds (${fP(fin / total)})`), tDnf = tipAttr('DNF', `${fN(dnf)} rounds (${fP(dnf / total)})`);
+  const r = 46, C = 2 * Math.PI * r, gap = slices.filter(s => s.n).length > 1 ? 2 : 0;
+  let off = 0;
+  const arcs = slices.map(s => {
+    const len = (s.n / total) * C, tip = tipAttr(s.label, `${fN(s.n)} rounds (${fP(s.n / total)})`, s.note || '');
+    const arc = s.n ? `<circle cx="60" cy="60" r="${r}" stroke="${s.color}" stroke-dasharray="${Math.max(len - gap, 0.5)} ${C}" stroke-dashoffset="${-off}" ${tip}/>` : '';
+    off += len;
+    return { arc, tip };
+  });
   return `<div class="donut">
-    <svg viewBox="0 0 120 120" role="img" aria-label="Finished ${fin}, DNF ${dnf}">
-      <g transform="rotate(-90 60 60)" fill="none" stroke-width="18">
-        ${fin ? `<circle cx="60" cy="60" r="${r}" stroke="var(--s1)" stroke-dasharray="${Math.max(a - gap, 0)} ${C}" ${tFin}/>` : ''}
-        ${dnf ? `<circle cx="60" cy="60" r="${r}" stroke="var(--bad)" stroke-dasharray="${Math.max(b - gap, 0.5)} ${C}" stroke-dashoffset="${-a}" ${tDnf}/>` : ''}
-      </g>
-      <text x="60" y="58" text-anchor="middle" font-size="20" font-weight="600" fill="var(--ink)">${fP(fin / total)}</text>
-      <text x="60" y="76" text-anchor="middle" font-size="10" fill="var(--ink2)">finished</text>
+    <svg viewBox="0 0 120 120" role="img" aria-label="${esc(slices.map(s => `${s.label} ${s.n}`).join(', '))}">
+      <g transform="rotate(-90 60 60)" fill="none" stroke-width="18">${arcs.map(a => a.arc).join('')}</g>
+      <text x="60" y="58" text-anchor="middle" font-size="20" font-weight="600" fill="var(--ink)">${fP(slices[0].n / total)}</text>
+      <text x="60" y="76" text-anchor="middle" font-size="10" fill="var(--ink2)">${esc(slices[0].label.toLowerCase())}</text>
     </svg>
     <div class="dl">
-      <span ${tFin}><i class="sw" style="background:var(--s1)"></i> Finished <b>${fN(fin)}</b></span>
-      <span ${tDnf}><i class="sw" style="background:var(--bad)"></i> DNF <b>${fN(dnf)}</b></span>
+      ${slices.map((s, i) => `<span ${arcs[i].tip}><i class="sw" style="background:${s.color}"></i> ${esc(s.label)} <b>${fN(s.n)}</b></span>`).join('')}
     </div>
   </div>`;
 }
@@ -783,6 +786,7 @@ function renderPlayer() {
   const runs = all.filter(r => !f.map || r.map === f.map);
   const a = agg(runs);
   const fin = runs.filter(r => r.finished).length;
+  const dnf = runs.filter(r => !r.finished && r.dnf).length;
   const team = uniq(all, 'team').join(', ');
 
   const maps = uniq(runs, 'map').map(m => {
@@ -812,7 +816,12 @@ function renderPlayer() {
     <div class="grid2">
       <div class="card"><h2>Pace by week</h2><p class="note">Below 0% is faster than the typical runner on the same maps.</p>
         ${lineChart(weeks, v => (v > 0 ? '+' : v < 0 ? '−' : '') + +Math.abs(v * 100).toFixed(1) + '%')}</div>
-      <div class="card"><h2>Finish record</h2><p class="note">${fN(a.n)} rounds</p>${donut(fin, a.n - fin)}</div>
+      <div class="card"><h2>Finish record</h2><p class="note">${fN(a.n)} rounds. DNF means the sheet flags the round as a DNF. "Round ended" means not finished but not flagged, usually because the round ended first.</p>
+        ${donut([
+          { label: 'Finished', n: fin, color: 'var(--s1)' },
+          { label: 'DNF', n: dnf, color: 'var(--bad)', note: 'Flagged as a DNF in the sheet' },
+          { label: 'Round ended', n: a.n - fin - dnf, color: 'var(--muted)', note: 'Not finished, but not flagged as a DNF' },
+        ])}</div>
     </div>
     <div class="card"><h2>By map</h2><p class="note">Rank is this player's personal best against everyone else's on that map.</p>
       ${table([

@@ -618,12 +618,16 @@ function lineChart(points, fmtY, yNote) {
   // x is positioned by value (e.g. week number), so a missing week leaves a gap
   const x0 = points[0].x, x1 = points[points.length - 1].x;
   const px = i => x1 === x0 ? 50 : 4 + ((points[i].x - x0) / (x1 - x0)) * 92;
-  const w = x1 === x0 ? 30 : 92 / (x1 - x0);
+  // each hover/tap band runs halfway to its neighbours and never past the plot edges
+  const band = i => {
+    const l = i === 0 ? 0 : (px(i - 1) + px(i)) / 2, r = i === points.length - 1 ? 100 : (px(i) + px(i + 1)) / 2;
+    return `left:${l}%;width:${r - l}%`;
+  };
   return `<div class="lc">
     <div class="lc-y">${ticks.map(t => `<span style="top:${py(t)}%">${fmtY(t)}</span>`).join('')}</div>
     <div class="lc-plot">
       ${ticks.map(t => `<div class="lc-gl ${t === 0 ? 'zero' : ''}" style="top:${py(t)}%"></div>`).join('')}
-      ${points.map((p, i) => `<div class="lc-hit" style="left:${px(i) - w / 2}%;width:${w}%" ${tipAttr(p.label, ...p.tip)}></div>`).join('')}
+      ${points.map((p, i) => `<div class="lc-hit" style="${band(i)}" ${tipAttr(p.label, ...p.tip)}></div>`).join('')}
       <svg viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
         <polyline fill="none" stroke="var(--s1)" stroke-width="2" vector-effect="non-scaling-stroke" stroke-linejoin="round"
           points="${points.map((p, i) => `${px(i)},${py(p.y)}`).join(' ')}"/>

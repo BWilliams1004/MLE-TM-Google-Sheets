@@ -10,7 +10,7 @@
   --page: #f9f9f7; --surface: #fcfcfb; --surface2: #f0efec; --ink: #0b0b0b; --ink2: #52514e; --muted: #898781;
   --grid: #e1e0d9; --axis: #c3c2b7; --border: rgba(11,11,11,.10);
   --s1: #2a78d6; --s2: #eb6834; --lo: #2a78d6; --mid: #f0efec; --hi: #e34948;
-  --good: #006300; --bad: #d03b3b; --accent-bg: rgba(42,120,214,.10); --shadow: 0 6px 24px rgba(0,0,0,.12);
+  --good: #006300; --bad: #d03b3b; --warn: #fab219; --accent-bg: rgba(42,120,214,.10); --shadow: 0 6px 24px rgba(0,0,0,.12);
 }
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
@@ -228,11 +228,21 @@ tr.hl td { background: var(--accent-bg); }
   box-shadow: var(--shadow); white-space: pre-line; display: none; max-width: min(300px, calc(100vw - 24px)); pointer-events: none;
 }
 #tip b { display: block; margin-bottom: 2px; }
-.notes { margin-top: 20px; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 12px 16px; font-size: 13px; color: var(--ink2); }
-.notes summary { cursor: pointer; color: var(--ink); font-weight: 550; }
-.notes ul { margin: 10px 0 0; padding-left: 18px; line-height: 1.55; }
-.notes li + li { margin-top: 8px; }
-.notes .rows { color: var(--muted); font-size: 12px; word-break: break-word; }
+.flag { margin: 0 0 16px; background: var(--surface); border: 1px solid var(--warn); border-left: 4px solid var(--warn); border-radius: 10px; font-size: 13.5px; }
+.flag summary { cursor: pointer; padding: 10px 14px; list-style: none; display: flex; gap: 8px; align-items: baseline; }
+.flag summary::-webkit-details-marker { display: none; }
+.flag summary::after { content: "▸"; margin-left: auto; color: var(--ink2); }
+.flag[open] summary::after { content: "▾"; }
+.flag-icon { color: var(--warn); font-size: 15px; }
+.flag-body { padding: 0 14px 12px; color: var(--ink2); }
+.flag-group h3 { font-size: 13.5px; color: var(--ink); margin: 10px 0 2px; }
+.flag-group p { margin: 0 0 6px; }
+.flag-group ul { list-style: none; margin: 0; padding: 0; max-height: 240px; overflow-y: auto; }
+.flag-group li { display: flex; flex-wrap: wrap; gap: 4px 10px; padding: 6px 0; border-top: 1px solid var(--grid); }
+.flag-group a { color: var(--s1); font-weight: 600; min-width: 72px; }
+.flag-group .where { color: var(--ink); }
+.flag-group .who { color: var(--muted); font-size: 12.5px; }
+.flag-foot { font-size: 12px; color: var(--muted); margin: 10px 0 0; }
 footer { margin-top: 28px; font-size: 12.5px; color: var(--muted); line-height: 1.6; }
 
 @media (max-width: 560px) {
@@ -277,8 +287,8 @@ footer { margin-top: 28px; font-size: 12.5px; color: var(--muted); line-height: 
     <button role="tab" data-tab="sectors" aria-selected="false">Sector Analysis</button>
     <button role="tab" data-tab="h2h" aria-selected="false">Head-to-Head</button>
   </nav>
+  <details class="flag" id="notes" hidden><summary></summary><div class="flag-body"></div></details>
   <main id="main"></main>
-  <details class="notes" id="notes" hidden><summary></summary><ul></ul></details>
   <footer>
     Data loads live from the league Google Sheet and re-checks every few minutes. Only rounds marked valid are counted. Times are in seconds.
     Tap or hover any chart mark for details. <b>Pace</b> compares a run to the median finishing time on the same map, so it can be compared across maps (below 0% is faster than typical).
@@ -307,6 +317,9 @@ function parseCSV(text) {
   if (field !== '' || row.length) { row.push(field); rows.push(row); }
   return rows;
 }
+
+const SHEET_EDIT = 'https://docs.google.com/spreadsheets/d/1VL_z5cmfBfNaaDCDLwzmpyM-YM0HwbNsV-tO3N4GpKQ/edit#gid=1621921211';
+function colLetter(i) { let s = ''; for (let n = i + 1; n > 0; n = Math.floor((n - 1) / 26)) s = String.fromCharCode(65 + (n - 1) % 26) + s; return s; }
 
 function buildRuns(rows) {
   const header = rows[0];
@@ -382,9 +395,12 @@ function buildRuns(rows) {
       recovered.push(r);
     }
   }
+  const L = colLetter;
+  const who = r => `${r.player} · ${r.match} · ${shortMap(r.map)} round ${r.round}`;
   if (recovered.length) notes.push({
-    text: `${recovered.length} run${recovered.length > 1 ? 's' : ''} reached every checkpoint but ${recovered.length > 1 ? 'were' : 'was'} recorded as unfinished with no final time. ${recovered.length > 1 ? 'They are' : 'It is'} counted as finished, using the last checkpoint time.`,
-    rows: recovered.map(r => r.sheetRow),
+    title: `Finishes recorded as unfinished (${recovered.length} row${recovered.length > 1 ? 's' : ''})`,
+    text: `These runs reached every checkpoint, but "Finished?" (column ${L(C.finished)}) is FALSE and "Final Time" (column ${L(C.final)}) is blank. The page counts them as finished at their last checkpoint time.`,
+    items: recovered.map(r => ({ row: r.sheetRow, who: who(r), where: `columns ${L(C.finished)} and ${L(C.final)}`, range: `${L(C.finished)}${r.sheetRow}:${L(C.final)}${r.sheetRow}` })),
   });
 
   // Glitched checkpoint data: a sector under a quarter of that sector's median time means the
@@ -397,11 +413,22 @@ function buildRuns(rows) {
     segMed.get(k).push(s.seg);
   }
   for (const [k, v] of segMed) segMed.set(k, median(v));
-  const glitched = runs.filter(r => r.splits.some(s => s.seg < 0.25 * segMed.get(r.map + '\u0000' + s.cp)));
-  for (const r of glitched) { r.splits = []; r.glitched = true; }
+  const glitched = [];
+  for (const r of runs) {
+    const bad = r.splits.filter(s => s.seg < 0.25 * segMed.get(r.map + '\u0000' + s.cp)).map(s => s.cp);
+    if (!bad.length) continue;
+    const lo = cpCols[Math.min(...bad) - 1], hi = cpCols[Math.max(...bad) - 1];
+    glitched.push({ r, bad, lo, hi });
+    r.splits = []; r.glitched = true;
+  }
   if (glitched.length) notes.push({
-    text: `${glitched.length} run${glitched.length > 1 ? 's have' : ' has'} impossible checkpoint times (a sector far faster than anyone could drive it). The round still counts, but its sector times are left out of Sector Analysis and Head-to-Head.`,
-    rows: glitched.map(r => r.sheetRow),
+    title: `Impossible checkpoint times (${glitched.length} row${glitched.length > 1 ? 's' : ''})`,
+    text: `These runs have checkpoints logged almost on top of each other, faster than anyone could drive the sector. The round still counts, but its sector times are left out of Sector Analysis and Head-to-Head.`,
+    items: glitched.map(({ r, bad, lo, hi }) => ({
+      row: r.sheetRow, who: who(r),
+      where: `CP${bad[0]}${bad.length > 1 ? '–CP' + bad[bad.length - 1] : ''} (column${lo === hi ? ' ' + L(lo) : `s ${L(lo)}–${L(hi)}`})`,
+      range: `${L(lo)}${r.sheetRow}:${L(hi)}${r.sheetRow}`,
+    })),
   });
 
   // Pace: each finished run against the median finishing time on its map.
@@ -1164,8 +1191,17 @@ const metaText = () => `${RUNS.length.toLocaleString()} valid rounds · checked 
 const notesEl = document.getElementById('notes');
 function showNotes(notes) {
   notesEl.hidden = !notes.length;
-  notesEl.querySelector('summary').textContent = `Data notes (${notes.length}): how this page handles problems in the sheet`;
-  notesEl.querySelector('ul').innerHTML = notes.map(n => `<li>${esc(n.text)}<br><span class="rows">Sheet row${n.rows.length > 1 ? 's' : ''}: ${n.rows.join(', ')}</span></li>`).join('');
+  if (!notes.length) return;
+  const rows = sum(notes.map(n => n.items.length));
+  notesEl.querySelector('summary').innerHTML =
+    `<span class="flag-icon" aria-hidden="true">⚠</span><b>Sheet check:</b> ${notes.length} problem${notes.length > 1 ? 's' : ''} found in the Google Sheet (${rows} row${rows > 1 ? 's' : ''}). Tap to see where.`;
+  notesEl.querySelector('.flag-body').innerHTML = notes.map(n => `
+    <div class="flag-group">
+      <h3>${esc(n.title)}</h3>
+      <p>${esc(n.text)}</p>
+      <ul>${n.items.map(it => `<li><a href="${SHEET_EDIT}&range=${encodeURIComponent(it.range)}" target="_blank" rel="noopener">Row ${it.row}</a>
+        <span class="where">${esc(it.where)}</span><span class="who">${esc(it.who)}</span></li>`).join('')}</ul>
+    </div>`).join('') + `<p class="flag-foot">Links open the sheet at that cell. This page never changes the sheet.</p>`;
 }
 
 function showError(msg) {

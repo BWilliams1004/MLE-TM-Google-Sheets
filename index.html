@@ -44,6 +44,25 @@ h1 { font-size: 22px; margin: 0; font-weight: 650; letter-spacing: -.01em; }
 .actions { display: flex; gap: 8px; flex-wrap: wrap; }
 .btn { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 6px 12px; cursor: pointer; font-size: 13px; }
 .btn:hover { background: var(--accent-bg); }
+.search { position: relative; flex: 1 1 240px; max-width: 360px; }
+.search input {
+  width: 100%; min-height: 38px; padding: 8px 12px; border-radius: 8px; border: 1px solid var(--border);
+  background: var(--surface); color: var(--ink); font: inherit; font-size: 14px;
+}
+.search input::placeholder { color: var(--muted); }
+#qlist {
+  position: absolute; top: calc(100% + 4px); left: 0; right: 0; z-index: 30; margin: 0; padding: 4px; list-style: none;
+  background: var(--surface); border: 1px solid var(--border); border-radius: 10px; box-shadow: var(--shadow);
+  max-height: 340px; overflow-y: auto;
+}
+#qlist li { display: flex; align-items: center; gap: 8px; padding: 10px; border-radius: 6px; cursor: pointer; }
+#qlist li[aria-selected="true"] { background: var(--accent-bg); }
+@media (hover: hover) { #qlist li:hover { background: var(--accent-bg); } }
+#qlist li.none { color: var(--ink2); cursor: default; }
+#qlist .qk { font-size: 11px; padding: 1px 7px; border-radius: 99px; background: var(--surface2); color: var(--ink2); flex: none; }
+#qlist .ql { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+#qlist .qs { margin-left: auto; font-size: 12px; color: var(--muted); flex: none; }
+#qlist mark { background: none; color: var(--s1); font-weight: 600; }
 .meta { color: var(--ink2); font-size: 13px; margin-top: 4px; min-height: 19px; }
 .meta.warn { color: var(--bad); }
 
@@ -214,6 +233,8 @@ footer { margin-top: 28px; font-size: 12.5px; color: var(--muted); line-height: 
 @media (max-width: 560px) {
   body { font-size: 14px; }
   h1 { font-size: 19px; }
+  .search { flex-basis: 100%; max-width: none; order: 3; }
+  .search input { font-size: 16px; }   /* 16px stops iOS zooming in on focus */
   .tiles { grid-template-columns: 1fr 1fr; gap: 8px; }
   .tile { padding: 10px 12px; }
   .tile .v { font-size: 22px; }
@@ -232,6 +253,11 @@ footer { margin-top: 28px; font-size: 12.5px; color: var(--muted); line-height: 
     <div>
       <h1>MLE League Trackmania Stats</h1>
       <div class="meta" id="meta">Loading data…</div>
+    </div>
+    <div class="search">
+      <input id="q" type="search" placeholder="Search players, teams, maps" autocomplete="off" spellcheck="false"
+        role="combobox" aria-expanded="false" aria-controls="qlist" aria-autocomplete="list" aria-label="Search players, teams and maps">
+      <ul id="qlist" role="listbox" hidden></ul>
     </div>
     <div class="actions">
       <button class="btn" id="share" type="button">Copy link</button>
@@ -1009,6 +1035,70 @@ document.getElementById('share').addEventListener('click', async e => {
   setTimeout(() => { b.textContent = 'Copy link'; }, 2000);
 });
 
+// ---------- search ----------
+
+const q = document.getElementById('q'), qlist = document.getElementById('qlist');
+let SEARCH = [], qItems = [], qIdx = -1;
+
+function buildSearch() {
+  const players = uniq(RUNS, 'player').map(p => {
+    const pr = RUNS.filter(r => r.player === p);
+    return { kind: 'Player', value: p, label: p, sub: uniq(pr, 'team').join(', ') };
+  });
+  const teams = uniq(RUNS, 'team').map(t => ({ kind: 'Team', value: t, label: t, sub: `${uniq(RUNS.filter(r => r.team === t), 'player').length} players` }));
+  const maps = uniq(RUNS, 'map').map(m => ({ kind: 'Map', value: m, label: shortMap(m), sub: 'sectors' }));
+  SEARCH = [...players, ...teams, ...maps].map(i => ({ ...i, key: i.label.toLowerCase() }));
+}
+
+function closeSearch() { qlist.hidden = true; q.setAttribute('aria-expanded', 'false'); q.removeAttribute('aria-activedescendant'); qIdx = -1; }
+
+function runSearch() {
+  const term = q.value.trim().toLowerCase();
+  if (!term || !SEARCH.length) { closeSearch(); return; }
+  qItems = SEARCH.filter(i => i.key.includes(term))
+    .sort((a, b) => b.key.startsWith(term) - a.key.startsWith(term) || byName(a.label, b.label))
+    .slice(0, 8);
+  qIdx = qItems.length ? 0 : -1;
+  const hl = s => { const i = s.toLowerCase().indexOf(term); return i < 0 ? esc(s) : esc(s.slice(0, i)) + '<mark>' + esc(s.slice(i, i + term.length)) + '</mark>' + esc(s.slice(i + term.length)); };
+  qlist.innerHTML = qItems.length
+    ? qItems.map((it, i) => `<li role="option" id="qo${i}" data-i="${i}" aria-selected="${i === qIdx}"><span class="qk">${it.kind}</span><span class="ql">${hl(it.label)}</span><span class="qs">${esc(it.sub)}</span></li>`).join('')
+    : `<li class="none">No players, teams or maps match "${esc(q.value.trim())}"</li>`;
+  qlist.hidden = false; q.setAttribute('aria-expanded', 'true');
+  if (qIdx >= 0) q.setAttribute('aria-activedescendant', 'qo' + qIdx);
+}
+
+function moveSearch(d) {
+  if (!qItems.length) return;
+  qIdx = (qIdx + d + qItems.length) % qItems.length;
+  qlist.querySelectorAll('li[role="option"]').forEach((li, i) => li.setAttribute('aria-selected', String(i === qIdx)));
+  q.setAttribute('aria-activedescendant', 'qo' + qIdx);
+  document.getElementById('qo' + qIdx)?.scrollIntoView({ block: 'nearest' });
+}
+
+function chooseSearch(it) {
+  if (!it) return;
+  if (it.kind === 'Player') { state.tab = 'player'; state.pl.player = it.value; state.pl.map = ''; }
+  else if (it.kind === 'Team') { state.tab = 'overview'; state.ov.team = it.value; }
+  else { state.tab = 'sectors'; state.sec.map = it.value; }
+  q.value = ''; closeSearch(); q.blur();
+  render(); scrollTo(0, 0);
+}
+
+q.addEventListener('input', runSearch);
+q.addEventListener('focus', runSearch);
+q.addEventListener('keydown', e => {
+  if (e.key === 'ArrowDown') { e.preventDefault(); if (qlist.hidden) runSearch(); else moveSearch(1); }
+  else if (e.key === 'ArrowUp') { e.preventDefault(); moveSearch(-1); }
+  else if (e.key === 'Enter') { e.preventDefault(); chooseSearch(qItems[qIdx]); }
+  else if (e.key === 'Escape') { if (!qlist.hidden) { e.stopPropagation(); closeSearch(); } else q.blur(); }
+});
+qlist.addEventListener('pointerdown', e => e.preventDefault());   // keep focus in the box while choosing
+qlist.addEventListener('click', e => { const li = e.target.closest('li[data-i]'); if (li) chooseSearch(qItems[Number(li.dataset.i)]); });
+q.addEventListener('blur', () => setTimeout(closeSearch, 100));
+document.addEventListener('keydown', e => {
+  if (e.key === '/' && !e.target.closest('input, select, textarea')) { e.preventDefault(); q.focus(); }
+});
+
 // ---------- loading & auto-refresh ----------
 
 let lastText = '', lastChecked = 0;
@@ -1017,7 +1107,7 @@ const meta = document.getElementById('meta');
 const metaText = () => `${RUNS.length.toLocaleString()} valid rounds · checked ${clock(new Date(lastChecked))} · auto-refreshes every ${REFRESH_MIN} min`;
 
 function showError(msg) {
-  RUNS = []; MATCHES = []; lastText = '';
+  RUNS = []; MATCHES = []; SEARCH = []; lastText = '';
   meta.textContent = 'Data failed to load'; meta.classList.add('warn');
   main.innerHTML = `<div class="error"><b>Couldn't load the stats.</b><p>${esc(msg)}</p></div>`;
 }
@@ -1043,6 +1133,7 @@ async function load(background = false) {
     const runs = buildRuns(parseCSV(text));
     if (!runs.length) throw new Error('The sheet loaded but has no valid rounds.');
     RUNS = runs; MATCHES = buildMatches(runs); lastText = text;
+    buildSearch();
     meta.textContent = metaText();
     const keepScroll = scrollY;
     render();

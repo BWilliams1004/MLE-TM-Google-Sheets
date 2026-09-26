@@ -7,154 +7,256 @@
 <style>
 :root {
   color-scheme: light;
-  --page: #f9f9f7; --surface: #fcfcfb; --ink: #0b0b0b; --ink2: #52514e; --muted: #898781;
+  --page: #f9f9f7; --surface: #fcfcfb; --surface2: #f0efec; --ink: #0b0b0b; --ink2: #52514e; --muted: #898781;
   --grid: #e1e0d9; --axis: #c3c2b7; --border: rgba(11,11,11,.10);
   --s1: #2a78d6; --s2: #eb6834; --lo: #2a78d6; --mid: #f0efec; --hi: #e34948;
-  --good: #0ca30c; --bad: #d03b3b; --accent-bg: rgba(42,120,214,.10);
+  --good: #006300; --bad: #d03b3b; --accent-bg: rgba(42,120,214,.10); --shadow: 0 6px 24px rgba(0,0,0,.12);
 }
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
     color-scheme: dark;
-    --page: #0d0d0d; --surface: #1a1a19; --ink: #ffffff; --ink2: #c3c2b7; --muted: #898781;
+    --page: #0d0d0d; --surface: #1a1a19; --surface2: #242422; --ink: #ffffff; --ink2: #c3c2b7; --muted: #898781;
     --grid: #2c2c2a; --axis: #383835; --border: rgba(255,255,255,.10);
     --s1: #3987e5; --s2: #d95926; --lo: #3987e5; --mid: #383835; --hi: #e66767;
-    --accent-bg: rgba(57,135,229,.18);
+    --good: #0ca30c; --bad: #e66767; --accent-bg: rgba(57,135,229,.18); --shadow: 0 6px 24px rgba(0,0,0,.5);
   }
 }
 :root[data-theme="dark"] {
   color-scheme: dark;
-  --page: #0d0d0d; --surface: #1a1a19; --ink: #ffffff; --ink2: #c3c2b7; --muted: #898781;
+  --page: #0d0d0d; --surface: #1a1a19; --surface2: #242422; --ink: #ffffff; --ink2: #c3c2b7; --muted: #898781;
   --grid: #2c2c2a; --axis: #383835; --border: rgba(255,255,255,.10);
   --s1: #3987e5; --s2: #d95926; --lo: #3987e5; --mid: #383835; --hi: #e66767;
-  --accent-bg: rgba(57,135,229,.18);
+  --good: #0ca30c; --bad: #e66767; --accent-bg: rgba(57,135,229,.18); --shadow: 0 6px 24px rgba(0,0,0,.5);
 }
 
 * { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
 body {
   margin: 0; background: var(--page); color: var(--ink);
-  font: 14px/1.45 system-ui, -apple-system, "Segoe UI", sans-serif;
+  font: 15px/1.45 system-ui, -apple-system, "Segoe UI", sans-serif;
 }
-.wrap { max-width: 1200px; margin: 0 auto; padding: 20px 16px 48px; }
-header { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 8px 16px; }
-h1 { font-size: 22px; margin: 0; font-weight: 650; }
-.meta { color: var(--ink2); font-size: 13px; display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
-button.link { background: none; border: 1px solid var(--border); color: var(--ink); border-radius: 6px; padding: 4px 10px; font: inherit; cursor: pointer; }
-button.link:hover { background: var(--accent-bg); }
+button, select { font: inherit; color: inherit; touch-action: manipulation; }
+:focus-visible { outline: 2px solid var(--s1); outline-offset: 2px; }
 
-nav.tabs { display: flex; gap: 4px; margin: 18px 0 16px; border-bottom: 1px solid var(--grid); overflow-x: auto; }
-nav.tabs button {
-  background: none; border: 0; border-bottom: 2px solid transparent; padding: 8px 12px; margin-bottom: -1px;
-  font: inherit; font-weight: 550; color: var(--ink2); cursor: pointer; white-space: nowrap;
+.wrap { max-width: 1200px; margin: 0 auto; padding: 0 16px 48px; }
+header.top { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 16px; padding-top: 20px; }
+h1 { font-size: 22px; margin: 0; font-weight: 650; letter-spacing: -.01em; }
+.actions { display: flex; gap: 8px; flex-wrap: wrap; }
+.btn { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 6px 12px; cursor: pointer; font-size: 13px; }
+.btn:hover { background: var(--accent-bg); }
+.meta { color: var(--ink2); font-size: 13px; margin-top: 4px; min-height: 19px; }
+.meta.warn { color: var(--bad); }
+
+nav.tabs {
+  position: sticky; top: 0; z-index: 5; background: var(--page);
+  display: flex; gap: 2px; margin: 12px -16px 16px; padding: 0 16px; border-bottom: 1px solid var(--grid);
+  overflow-x: auto; scrollbar-width: none;
 }
+nav.tabs::-webkit-scrollbar { display: none; }
+nav.tabs button {
+  background: none; border: 0; border-bottom: 2px solid transparent; padding: 12px 12px 10px; margin-bottom: -1px;
+  font-weight: 550; color: var(--ink2); cursor: pointer; white-space: nowrap;
+}
+nav.tabs button:hover { color: var(--ink); }
 nav.tabs button[aria-selected="true"] { color: var(--ink); border-bottom-color: var(--s1); }
 
-.filters { display: flex; flex-wrap: wrap; gap: 12px; margin-bottom: 16px; }
-.filters label { display: flex; flex-direction: column; font-size: 12px; color: var(--ink2); gap: 4px; min-width: 180px; flex: 0 1 240px; }
+.filters { display: flex; flex-wrap: wrap; gap: 12px; margin-bottom: 16px; align-items: flex-end; }
+.filters label { display: flex; flex-direction: column; font-size: 12px; color: var(--ink2); gap: 4px; flex: 0 1 230px; min-width: 150px; }
+.filters label.sm { flex-basis: 140px; min-width: 120px; }
 select {
-  font: inherit; color: var(--ink); background: var(--surface); border: 1px solid var(--border);
-  border-radius: 6px; padding: 6px 8px; width: 100%;
+  background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 8px 10px; width: 100%; min-height: 40px;
 }
+.swap { align-self: flex-end; min-height: 40px; }
 
 .tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 12px; margin-bottom: 12px; }
-.tile, .card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; }
+.tile, .card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; }
 .tile { padding: 14px 16px; }
 .tile .k { font-size: 12px; color: var(--ink2); }
-.tile .v { font-size: 28px; font-weight: 600; margin-top: 2px; }
+.tile .v { font-size: 28px; font-weight: 600; margin-top: 2px; font-variant-numeric: tabular-nums; }
 .tile .sub { font-size: 12px; color: var(--muted); margin-top: 2px; }
-@media (max-width: 520px) {
-  .tiles { grid-template-columns: 1fr 1fr; gap: 8px; }
-  .tile { padding: 10px 12px; }
-  .tile .v { font-size: 22px; }
-  .filters label { flex: 1 1 100%; }
-}
+.good { color: var(--good); } .bad { color: var(--bad); }
 
 .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-@media (max-width: 820px) { .grid2 { grid-template-columns: 1fr; } }
+.grid2 > .card { margin-bottom: 0; }
+.grid2 + .card, .card + .grid2, .grid2 + .grid2 { margin-top: 12px; }
+@media (max-width: 860px) { .grid2 { grid-template-columns: 1fr; } }
 .card { padding: 16px; margin-bottom: 12px; min-width: 0; }
-.card h2 { font-size: 14px; font-weight: 600; margin: 0 0 4px; }
-.card .note { font-size: 12px; color: var(--ink2); margin: 0 0 12px; }
+.card h2 { font-size: 15px; font-weight: 600; margin: 0 0 2px; }
+.card .note { font-size: 12.5px; color: var(--ink2); margin: 0 0 14px; }
+.card-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; flex-wrap: wrap; }
 
-.legend { display: flex; gap: 16px; flex-wrap: wrap; font-size: 12px; color: var(--ink2); margin-bottom: 10px; }
+.legend { display: flex; gap: 16px; flex-wrap: wrap; font-size: 12.5px; color: var(--ink2); margin-bottom: 10px; }
 .legend span { display: inline-flex; align-items: center; gap: 6px; }
-.sw { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
+.sw { width: 10px; height: 10px; border-radius: 50%; display: inline-block; flex: none; }
+
+/* interactive marks */
+[data-tip] { cursor: pointer; -webkit-tap-highlight-color: transparent; }
 
 /* dot plot */
-.dp-row { display: grid; grid-template-columns: minmax(90px, 170px) 1fr; align-items: center; min-height: 30px; }
-.dp-label { font-size: 12px; color: var(--ink2); padding-right: 10px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.dp-track { position: relative; height: 30px; }
-.dp-grid { position: absolute; top: 0; bottom: 0; width: 1px; background: var(--grid); }
-.dp-line { position: absolute; top: 14px; height: 2px; background: var(--axis); }
-.dp-dot { position: absolute; top: 10px; width: 10px; height: 10px; margin-left: -5px; border-radius: 50%; box-shadow: 0 0 0 2px var(--surface); cursor: default; }
-.dp-dot::after { content: ""; position: absolute; inset: -8px; }
-.dp-axis { position: relative; height: 18px; }
-.dp-axis span { position: absolute; transform: translateX(-50%); font-size: 11px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.dp-row { display: grid; grid-template-columns: minmax(84px, 160px) 1fr 58px; align-items: center; min-height: 38px; border-radius: 8px; }
+.dp-row.is-active { background: var(--accent-bg); }
+@media (hover: hover) { .dp-row[data-tip]:hover { background: var(--accent-bg); } }
+.dp-label { font-size: 13px; color: var(--ink); padding: 0 10px 0 6px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.dp-val { font-size: 12px; color: var(--ink2); text-align: right; padding-right: 6px; font-variant-numeric: tabular-nums; }
+.dp-track { position: relative; height: 38px; }
+.dp-grid { position: absolute; top: 4px; bottom: 4px; width: 1px; background: var(--grid); }
+.dp-line { position: absolute; top: 18px; height: 2px; background: var(--axis); }
+.dp-dot { position: absolute; top: 13px; width: 12px; height: 12px; margin-left: -6px; border-radius: 50%; box-shadow: 0 0 0 2px var(--surface); }
+.dp-axis { position: relative; height: 20px; }
+.dp-axis span { position: absolute; transform: translateX(-50%); font-size: 11.5px; color: var(--muted); font-variant-numeric: tabular-nums; white-space: nowrap; }
 
 /* column chart */
-.cc { display: grid; grid-template-columns: 40px 1fr; }
-.cc-y { position: relative; height: 200px; }
-.cc-y span { position: absolute; right: 6px; transform: translateY(50%); font-size: 11px; color: var(--muted); font-variant-numeric: tabular-nums; }
-.cc-plot { position: relative; height: 200px; border-bottom: 1px solid var(--axis); }
+.cc-wrap { container-type: inline-size; }
+.cc { display: grid; grid-template-columns: 44px 1fr; }
+.cc-y { position: relative; height: 220px; }
+.cc-y span { position: absolute; right: 8px; transform: translateY(50%); font-size: 11.5px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.cc-plot { position: relative; height: 220px; border-bottom: 1px solid var(--axis); }
 .cc-gl { position: absolute; left: 0; right: 0; height: 1px; background: var(--grid); }
-.cc-bars { position: absolute; inset: 0; display: flex; align-items: flex-end; gap: 2px; padding: 0 2px; }
-.cc-col { flex: 1; height: 100%; display: flex; flex-direction: column; justify-content: flex-end; align-items: center; position: relative; }
-.cc-bar { width: 100%; max-width: 40px; border-radius: 4px 4px 0 0; min-height: 1px; }
-.cc-val { font-size: 11px; color: var(--ink); margin-bottom: 2px; font-variant-numeric: tabular-nums; white-space: nowrap; }
-.cc-x { display: flex; gap: 2px; padding: 4px 2px 0; grid-column: 2; }
-.cc-x span { flex: 1; text-align: center; font-size: 11px; color: var(--muted); }
+.cc-bars { position: absolute; inset: 0; display: flex; align-items: stretch; gap: 2px; }
+.cc-col { flex: 1; position: relative; border-radius: 6px 6px 0 0; }
+.cc-col.is-active { background: var(--accent-bg); }
+.cc-bar { position: absolute; bottom: 0; left: 50%; transform: translateX(-50%); width: 72%; max-width: 44px; border-radius: 4px 4px 0 0; min-height: 2px; transition: opacity .12s; }
+.cc-val { position: absolute; left: 0; right: 0; text-align: center; font-size: 11.5px; color: var(--ink); font-variant-numeric: tabular-nums; white-space: nowrap; }
+@media (hover: hover) {
+  .cc-col:hover { background: var(--accent-bg); }
+  .cc-bars:hover .cc-col:not(:hover) .cc-bar { opacity: .55; }
+}
+@container (max-width: 520px) { .cc-val.minor { display: none; } }
+.cc-x { display: flex; gap: 2px; padding-top: 6px; grid-column: 2; }
+.cc-x span { flex: 1; text-align: center; font-size: 11.5px; color: var(--muted); min-width: 0; overflow: hidden; }
+
+/* line chart */
+.lc { display: grid; grid-template-columns: 50px 1fr; }
+.lc-y { position: relative; height: 200px; }
+.lc-y span { position: absolute; right: 8px; transform: translateY(-50%); font-size: 11.5px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.lc-plot { position: relative; height: 200px; }
+.lc-plot svg { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
+.lc-gl { position: absolute; left: 0; right: 0; height: 1px; background: var(--grid); }
+.lc-gl.zero { background: var(--axis); height: 2px; }
+.lc-hit { position: absolute; top: 0; bottom: 0; border-radius: 6px; }
+.lc-hit.is-active { background: var(--accent-bg); }
+@media (hover: hover) { .lc-hit:hover { background: var(--accent-bg); } }
+.lc-dot { position: absolute; width: 10px; height: 10px; margin: -5px 0 0 -5px; border-radius: 50%; background: var(--s1); box-shadow: 0 0 0 2px var(--surface); pointer-events: none; }
+.lc-x { position: relative; height: 22px; grid-column: 2; }
+.lc-x span { position: absolute; top: 6px; transform: translateX(-50%); font-size: 11.5px; color: var(--muted); white-space: nowrap; }
+
+/* diverging bars */
+.dv-row { display: grid; grid-template-columns: 48px 1fr; align-items: center; min-height: 34px; border-radius: 8px; }
+.dv-row.is-active { background: var(--accent-bg); }
+@media (hover: hover) { .dv-row:hover { background: var(--accent-bg); } }
+.dv-label { font-size: 12.5px; color: var(--ink2); padding-left: 6px; }
+.dv-track { position: relative; height: 34px; }
+.dv-mid { position: absolute; left: 50%; top: 2px; bottom: 2px; width: 2px; margin-left: -1px; background: var(--axis); }
+.dv-bar { position: absolute; top: 9px; height: 16px; }
+.dv-bar.l { border-radius: 4px 0 0 4px; } .dv-bar.r { border-radius: 0 4px 4px 0; }
+.dv-num { position: absolute; top: 8px; font-size: 11.5px; color: var(--ink); font-variant-numeric: tabular-nums; white-space: nowrap; }
 
 /* donut */
-.donut { display: flex; align-items: center; gap: 20px; flex-wrap: wrap; }
+.donut { display: flex; align-items: center; gap: 24px; flex-wrap: wrap; }
 .donut svg { width: 150px; height: 150px; flex: none; }
-.donut .dl { display: flex; flex-direction: column; gap: 8px; font-size: 13px; }
+.donut .dl { display: flex; flex-direction: column; gap: 6px; font-size: 13.5px; }
+.donut .dl > span { display: flex; align-items: center; gap: 8px; padding: 6px 8px; border-radius: 8px; }
+.donut .dl > span.is-active { background: var(--accent-bg); }
+@media (hover: hover) { .donut .dl > span:hover { background: var(--accent-bg); } }
 .donut .dl b { font-variant-numeric: tabular-nums; }
 
 /* tables */
-.scroll { overflow-x: auto; }
-table { border-collapse: collapse; width: 100%; font-size: 13px; }
-th { text-align: left; font-weight: 600; color: var(--ink); background: var(--mid); padding: 7px 10px; white-space: nowrap; }
-td { padding: 6px 10px; border-top: 1px solid var(--grid); white-space: nowrap; }
+.scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+table { border-collapse: collapse; width: 100%; font-size: 13.5px; }
+th { text-align: left; font-weight: 600; color: var(--ink); background: var(--surface2); padding: 8px 10px; white-space: nowrap; font-size: 12.5px; }
+td { padding: 8px 10px; border-top: 1px solid var(--grid); white-space: nowrap; }
 td.n, th.n { text-align: right; font-variant-numeric: tabular-nums; }
 th.sortable { cursor: pointer; user-select: none; }
-th.sortable:hover { text-decoration: underline; }
+th.sortable:hover { color: var(--s1); }
+th .arr { color: var(--s1); }
+tr.hl td { background: var(--accent-bg); }
+.rank { color: var(--muted); width: 1%; }
+.pill { display: inline-block; font-size: 11px; padding: 1px 7px; border-radius: 99px; background: var(--surface2); color: var(--ink2); margin-left: 6px; }
+.more { margin-top: 10px; }
 
 /* heatmap */
-.hm td.c { text-align: center; font-variant-numeric: tabular-nums; border: 1px solid var(--surface); cursor: default; }
-.hm th:first-child, .hm td:first-child { position: sticky; left: 0; background: var(--surface); z-index: 1; }
-.hm th:first-child { background: var(--mid); }
-.hm-legend { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--ink2); margin-bottom: 10px; flex-wrap: wrap; }
-.hm-grad { width: 160px; height: 10px; border-radius: 5px; }
+.hm { font-size: 13px; }
+.hm td.c { text-align: center; font-variant-numeric: tabular-nums; border: 2px solid var(--surface); min-width: 54px; padding: 8px 6px; }
+.hm td.c.is-active { outline: 2px solid var(--ink); outline-offset: -2px; }
+.hm th:first-child, .hm td:first-child { position: sticky; left: 0; background: var(--surface); z-index: 1; box-shadow: 1px 0 0 var(--grid); }
+.hm th:first-child { background: var(--surface2); }
+.hm tr:hover td:first-child { color: var(--s1); }
+.hm-legend { display: flex; align-items: center; gap: 8px; font-size: 12.5px; color: var(--ink2); margin-bottom: 12px; flex-wrap: wrap; }
+.hm-grad { width: 140px; height: 10px; border-radius: 5px; }
 
-.empty { color: var(--ink2); padding: 24px 0; text-align: center; }
-.status { padding: 40px 0; text-align: center; color: var(--ink2); }
-.error { background: var(--surface); border: 1px solid var(--bad); border-radius: 10px; padding: 16px; margin: 20px 0; }
+/* match results */
+.wk { font-size: 12px; font-weight: 600; color: var(--ink2); margin: 14px 0 6px; text-transform: uppercase; letter-spacing: .04em; }
+.wk:first-child { margin-top: 0; }
+.mr { display: grid; grid-template-columns: 1fr auto 1fr; gap: 10px; align-items: center; padding: 8px 10px; border-radius: 8px; border: 1px solid var(--grid); margin-bottom: 6px; }
+.mr.is-active { background: var(--accent-bg); }
+@media (hover: hover) { .mr:hover { background: var(--accent-bg); } }
+.mr .t { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--ink2); }
+.mr .t.w { color: var(--ink); font-weight: 600; }
+.mr .t:last-child { text-align: right; }
+.mr .sc { font-variant-numeric: tabular-nums; font-weight: 600; font-size: 15px; }
+.results { max-height: 560px; overflow-y: auto; padding-right: 4px; }
+
+.empty { color: var(--ink2); padding: 28px 0; text-align: center; }
+.error { background: var(--surface); border: 1px solid var(--bad); border-radius: 12px; padding: 16px; margin: 20px 0; }
 .error b { color: var(--bad); }
+.sk { background: var(--surface2); border-radius: 12px; animation: pulse 1.2s ease-in-out infinite; }
+@keyframes pulse { 50% { opacity: .55; } }
+@media (prefers-reduced-motion: reduce) { .sk { animation: none; } .cc-bar { transition: none; } }
 
 #tip {
-  position: fixed; pointer-events: none; z-index: 10; background: var(--surface); color: var(--ink);
-  border: 1px solid var(--border); border-radius: 8px; padding: 8px 10px; font-size: 12px; line-height: 1.4;
-  box-shadow: 0 4px 16px rgba(0,0,0,.15); white-space: pre; display: none; max-width: 320px;
+  position: fixed; z-index: 20; background: var(--surface); color: var(--ink);
+  border: 1px solid var(--border); border-radius: 10px; padding: 9px 12px; font-size: 13px; line-height: 1.45;
+  box-shadow: var(--shadow); white-space: pre-line; display: none; max-width: min(300px, calc(100vw - 24px)); pointer-events: none;
 }
-footer { margin-top: 24px; font-size: 12px; color: var(--muted); }
+#tip b { display: block; margin-bottom: 2px; }
+footer { margin-top: 28px; font-size: 12.5px; color: var(--muted); line-height: 1.6; }
+
+@media (max-width: 560px) {
+  body { font-size: 14px; }
+  h1 { font-size: 19px; }
+  .tiles { grid-template-columns: 1fr 1fr; gap: 8px; }
+  .tile { padding: 10px 12px; }
+  .tile .v { font-size: 22px; }
+  .filters label, .filters label.sm { flex: 1 1 calc(50% - 6px); min-width: 0; }
+  .card { padding: 14px 12px; }
+  .dp-row { grid-template-columns: minmax(70px, 110px) 1fr 50px; }
+  .cc { grid-template-columns: 36px 1fr; }
+  .cc-y, .cc-plot { height: 180px; }
+  .lc { grid-template-columns: 42px 1fr; }
+}
 </style>
 </head>
 <body>
 <div class="wrap">
-  <header>
-    <h1>MLE League Trackmania Stats</h1>
-    <div class="meta"><span id="meta">Loading data…</span><button class="link" id="reload" type="button">Reload data</button></div>
+  <header class="top">
+    <div>
+      <h1>MLE League Trackmania Stats</h1>
+      <div class="meta" id="meta">Loading data…</div>
+    </div>
+    <div class="actions">
+      <button class="btn" id="share" type="button">Copy link</button>
+      <button class="btn" id="theme" type="button">Theme: Auto</button>
+      <button class="btn" id="reload" type="button">Reload data</button>
+    </div>
   </header>
   <nav class="tabs" role="tablist">
-    <button role="tab" data-tab="overview" aria-selected="true">League Overview</button>
+    <button role="tab" data-tab="overview" aria-selected="true">Overview</button>
+    <button role="tab" data-tab="leaders" aria-selected="false">Leaderboards</button>
     <button role="tab" data-tab="player" aria-selected="false">Player Profile</button>
     <button role="tab" data-tab="sectors" aria-selected="false">Sector Analysis</button>
+    <button role="tab" data-tab="h2h" aria-selected="false">Head-to-Head</button>
   </nav>
-  <main id="main"><div class="status">Loading data from the Google Sheet…</div></main>
-  <footer>Data loads live from the league Google Sheet each time this page opens. Only rounds marked valid are counted. Times are in seconds.</footer>
+  <main id="main"></main>
+  <footer>
+    Data loads live from the league Google Sheet and re-checks every few minutes. Only rounds marked valid are counted. Times are in seconds.
+    Tap or hover any chart mark for details. <b>Pace</b> compares a run to the median finishing time on the same map, so it can be compared across maps (below 0% is faster than typical).
+  </footer>
 </div>
 <div id="tip" role="tooltip"></div>
 
 <script>
 const SHEET_URL = 'https://docs.google.com/spreadsheets/d/1VL_z5cmfBfNaaDCDLwzmpyM-YM0HwbNsV-tO3N4GpKQ/export?format=csv&gid=1621921211';
+const REFRESH_MIN = 5;
 
 // ---------- data loading ----------
 
@@ -213,10 +315,12 @@ function buildRuns(rows) {
     if (resp.length < cum.length || loss.length < cum.length)
       throw new Error(`Sheet row ${sheetRow}: respawn lists are shorter than the number of checkpoints.`);
     const splits = cum.map((v, k) => ({ cp: k + 1, seg: v - (k ? cum[k - 1] : 0), resp: resp[k], loss: loss[k] }));
-    const match = r[C.match], map = r[C.map], round = r[C.round], player = r[C.player];
+    const match = r[C.match], map = r[C.map], player = r[C.player];
+    const wk = match.match(/\bM(\d+)\b/);
     runs.push({
-      id: `${match} | ${map} | ${round} | ${player}`,
-      match, map, round: num(round, 'Round Index'), player, team: r[C.team],
+      match, map, player, team: r[C.team],
+      round: num(r[C.round], 'Round Index'),
+      week: wk ? Number(wk[1]) : null,
       finished: r[C.finished] === 'TRUE',
       final: num(r[C.final], 'Final Time'),
       respawns: num(r[C.respawns], 'Respawns') || 0,
@@ -226,22 +330,60 @@ function buildRuns(rows) {
       splits,
     });
   }
+
+  // Pace: each finished run against the median finishing time on its map.
+  const byMap = new Map();
+  for (const r of runs) if (r.final != null) { if (!byMap.has(r.map)) byMap.set(r.map, []); byMap.get(r.map).push(r.final); }
+  const med = new Map([...byMap].map(([m, v]) => [m, median(v)]));
+  for (const r of runs) r.pace = r.final != null ? r.final / med.get(r.map) - 1 : null;
   return runs;
 }
 
-// ---------- measures ----------
+// Match and map results from round wins: the team that wins more rounds takes the map.
+function buildMatches(runs) {
+  const maps = new Map();
+  for (const r of runs) {
+    const k = r.match + '\u0000' + r.map;
+    if (!maps.has(k)) maps.set(k, { match: r.match, map: r.map, week: r.week, teams: new Map() });
+    const m = maps.get(k);
+    if (!m.teams.has(r.team)) m.teams.set(r.team, new Set());
+    if (r.win) m.teams.get(r.team).add(r.round);
+  }
+  const matches = new Map();
+  for (const m of maps.values()) {
+    const sc = [...m.teams].map(([t, s]) => [t, s.size]).sort((a, b) => b[1] - a[1]);
+    const winner = sc.length === 2 && sc[0][1] > sc[1][1] ? sc[0][0] : null;
+    if (!matches.has(m.match)) matches.set(m.match, { match: m.match, week: m.week, teams: new Map(), maps: [] });
+    const M = matches.get(m.match);
+    for (const [t] of sc) if (!M.teams.has(t)) M.teams.set(t, 0);
+    if (winner) M.teams.set(winner, M.teams.get(winner) + 1);
+    M.maps.push({ map: m.map, score: sc, winner });
+  }
+  return [...matches.values()].map(M => {
+    const t = [...M.teams].sort((a, b) => byName(a[0], b[0]));
+    const decided = M.maps.every(x => x.winner);
+    const winner = decided && t.length === 2 && t[0][1] !== t[1][1] ? (t[0][1] > t[1][1] ? t[0][0] : t[1][0]) : null;
+    return { ...M, teams: t, winner, decided };
+  }).sort((a, b) => (a.week ?? 99) - (b.week ?? 99) || byName(a.match, b.match));
+}
+
+// ---------- stats ----------
 
 const sum = a => a.reduce((x, y) => x + y, 0);
 const mean = a => a.length ? sum(a) / a.length : null;
+function median(a) { if (!a.length) return null; const s = [...a].sort((x, y) => x - y), m = s.length >> 1; return s.length % 2 ? s[m] : (s[m - 1] + s[m]) / 2; }
+function quantile(a, p) { const s = [...a].sort((x, y) => x - y); const i = (s.length - 1) * p, lo = Math.floor(i); return s[lo] + (s[Math.ceil(i)] - s[lo]) * (i - lo); }
 
 function agg(runs) {
   const n = runs.length;
   const times = runs.map(r => r.final).filter(v => v != null);
+  const paces = runs.map(r => r.pace).filter(v => v != null);
   return {
     n,
     finishRate: n ? runs.filter(r => r.finished).length / n : null,
     best: times.length ? Math.min(...times) / 1000 : null,
     avg: times.length ? mean(times) / 1000 : null,
+    pace: paces.length ? mean(paces) : null,
     winRate: n ? sum(runs.map(r => r.win)) / n : null,
     avgPts: n ? sum(runs.map(r => r.points)) / n : null,
     respPerRound: n ? sum(runs.map(r => r.respawns)) / n : null,
@@ -261,16 +403,37 @@ function sectorStats(runs) {
   });
 }
 
+function playerSegs(runs, player) {
+  const out = new Map();
+  for (const r of runs) if (r.player === player) for (const s of r.splits) {
+    if (!out.has(s.cp)) out.set(s.cp, []);
+    out.get(s.cp).push(s.seg);
+  }
+  return new Map([...out].map(([cp, v]) => [cp, { avg: mean(v) / 1000, n: v.length }]));
+}
+
+function personalBests(runs) {
+  const pb = new Map();
+  for (const r of runs) if (r.final != null) {
+    const cur = pb.get(r.player);
+    if (!cur || r.final < cur.final) pb.set(r.player, r);
+  }
+  return [...pb.values()].sort((a, b) => a.final - b.final);
+}
+
 // ---------- formatting ----------
 
 const fS = v => v == null || Number.isNaN(v) ? '–' : v.toFixed(3);
 const fP = v => v == null ? '–' : (v * 100).toFixed(1) + '%';
 const f2 = v => v == null ? '–' : v.toFixed(2);
 const fN = v => v == null ? '–' : v.toLocaleString();
-const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const fPace = v => v == null ? '–' : (v > 0.00049 ? '+' : v < -0.00049 ? '−' : '') + Math.abs(v * 100).toFixed(1) + '%';
+const paceCls = v => v == null ? '' : v < -0.00049 ? 'good' : v > 0.00049 ? 'bad' : '';
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const shortMap = m => m.replace(/^MLE - /, '');
-const byName = (a, b) => a.localeCompare(b, undefined, { sensitivity: 'base' });
-const uniq = (runs, k) => [...new Set(runs.map(r => r[k]).filter(Boolean))].sort(byName);
+const byName = (a, b) => String(a).localeCompare(String(b), undefined, { sensitivity: 'base' });
+const uniq = (runs, k) => [...new Set(runs.map(r => r[k]).filter(v => v != null && v !== ''))].sort(byName);
+const weeksOf = runs => [...new Set(runs.map(r => r.week).filter(v => v != null))].sort((a, b) => a - b);
 
 function niceStep(range, count) {
   const raw = range / count, mag = Math.pow(10, Math.floor(Math.log10(raw))), f = raw / mag;
@@ -295,295 +458,567 @@ function lum([r, g, b]) {
   const l = c => { c /= 255; return c <= 0.03928 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4); };
   return 0.2126 * l(r) + 0.7152 * l(g) + 0.0722 * l(b);
 }
+// data-tip: first line is the bold heading, the rest are details
+const tipAttr = (title, ...lines) => `data-tip="${esc([title, ...lines].join('\n'))}" tabindex="0"`;
 
-// ---------- chart components ----------
+// ---------- components ----------
 
-function tile(k, v, sub) {
-  return `<div class="tile"><div class="k">${esc(k)}</div><div class="v">${v}</div>${sub ? `<div class="sub">${sub}</div>` : ''}</div>`;
+function tile(k, v, sub, cls = '') {
+  return `<div class="tile"><div class="k">${esc(k)}</div><div class="v ${cls}">${v}</div>${sub ? `<div class="sub">${sub}</div>` : ''}</div>`;
 }
+const EMPTY = msg => `<div class="empty">${esc(msg || 'No rounds match these filters.')}</div>`;
 
 function dotPlot(items, nameA, nameB) {
-  if (!items.length) return `<div class="empty">No rounds match these filters.</div>`;
+  if (!items.length) return EMPTY();
   const vals = items.flatMap(i => [i.a, i.b]).filter(v => v != null);
-  const ticks = niceTicks(Math.min(...vals), Math.max(...vals), 5);
+  const ticks = niceTicks(Math.min(...vals), Math.max(...vals), 4);
   const lo = ticks[0], hi = ticks[ticks.length - 1], pct = v => ((v - lo) / (hi - lo)) * 100;
   const grid = ticks.map(t => `<div class="dp-grid" style="left:${pct(t)}%"></div>`).join('');
   const rows = items.map(i => `
-    <div class="dp-row">
-      <div class="dp-label" title="${esc(i.label)}">${esc(i.label)}</div>
+    <div class="dp-row" ${tipAttr(i.label, ...i.tip)}>
+      <div class="dp-label">${esc(i.label)}</div>
       <div class="dp-track">${grid}
         ${i.a != null && i.b != null ? `<div class="dp-line" style="left:${pct(i.a)}%;width:${pct(i.b) - pct(i.a)}%"></div>` : ''}
-        ${i.a != null ? `<div class="dp-dot" style="left:${pct(i.a)}%;background:var(--s1)" data-tip="${esc(i.label)}\n${nameA}: ${fS(i.a)}s"></div>` : ''}
-        ${i.b != null ? `<div class="dp-dot" style="left:${pct(i.b)}%;background:var(--s2)" data-tip="${esc(i.label)}\n${nameB}: ${fS(i.b)}s"></div>` : ''}
+        ${i.a != null ? `<div class="dp-dot" style="left:${pct(i.a)}%;background:var(--s1)"></div>` : ''}
+        ${i.b != null ? `<div class="dp-dot" style="left:${pct(i.b)}%;background:var(--s2)"></div>` : ''}
       </div>
+      <div class="dp-val">${fS(i.b)}</div>
     </div>`).join('');
-  const axis = `<div class="dp-row"><div></div><div class="dp-axis">${ticks.map(t => `<span style="left:${pct(t)}%">${t}s</span>`).join('')}</div></div>`;
-  return `<div class="legend"><span><i class="sw" style="background:var(--s1)"></i>${nameA}</span><span><i class="sw" style="background:var(--s2)"></i>${nameB}</span></div>${rows}${axis}`;
+  const axis = `<div class="dp-row" style="min-height:0"><div></div><div class="dp-axis">${ticks.map(t => `<span style="left:${pct(t)}%">${t}s</span>`).join('')}</div><div></div></div>`;
+  return `<div class="legend"><span><i class="sw" style="background:var(--s1)"></i>${nameA}</span><span><i class="sw" style="background:var(--s2)"></i>${nameB} (number on the right)</span></div>${rows}${axis}`;
 }
 
 function colChart(items, color, unit) {
-  if (!items.length) return `<div class="empty">No data for this selection.</div>`;
+  if (!items.length) return EMPTY('No data for this selection.');
   const max = Math.max(...items.map(i => i.value), 0);
-  const ticks = niceTicks(0, max || 1, 4), top = ticks[ticks.length - 1];
+  const ticks = niceTicks(0, (max || 1) * 1.12, 4), top = ticks[ticks.length - 1];   // headroom for the value label
   const pct = v => (v / top) * 100;
   const maxIdx = items.findIndex(i => i.value === max);
-  return `<div class="cc">
+  return `<div class="cc-wrap"><div class="cc">
     <div class="cc-y">${ticks.map(t => `<span style="bottom:${pct(t)}%">${t}${unit}</span>`).join('')}</div>
     <div class="cc-plot">
       ${ticks.map(t => `<div class="cc-gl" style="bottom:${pct(t)}%"></div>`).join('')}
       <div class="cc-bars">${items.map((i, k) => `
-        <div class="cc-col" data-tip="${esc(i.tip)}">
-          ${k === maxIdx && max > 0 ? `<div class="cc-val">${i.value.toFixed(2)}${unit}</div>` : ''}
+        <div class="cc-col" ${tipAttr(i.label, ...i.tip)}>
+          <div class="cc-val ${k === maxIdx ? '' : 'minor'}" style="bottom:calc(${pct(i.value)}% + 3px)">${i.value.toFixed(i.value >= 100 ? 0 : 1)}</div>
           <div class="cc-bar" style="height:${pct(i.value)}%;background:${color}"></div>
         </div>`).join('')}
       </div>
     </div>
     <div class="cc-x">${items.map(i => `<span>${esc(i.label)}</span>`).join('')}</div>
-  </div>`;
+  </div></div>`;
+}
+
+function lineChart(points, fmtY, yNote) {
+  if (!points.length) return EMPTY('Not enough finished runs to chart.');
+  const ys = points.map(p => p.y);
+  const ticks = niceTicks(Math.min(0, ...ys), Math.max(0, ...ys), 4);
+  const lo = ticks[0], hi = ticks[ticks.length - 1];
+  const py = v => (1 - (v - lo) / (hi - lo)) * 100;
+  // x is positioned by value (e.g. week number), so a missing week leaves a gap
+  const x0 = points[0].x, x1 = points[points.length - 1].x;
+  const px = i => x1 === x0 ? 50 : 4 + ((points[i].x - x0) / (x1 - x0)) * 92;
+  const w = x1 === x0 ? 30 : 92 / (x1 - x0);
+  return `<div class="lc">
+    <div class="lc-y">${ticks.map(t => `<span style="top:${py(t)}%">${fmtY(t)}</span>`).join('')}</div>
+    <div class="lc-plot">
+      ${ticks.map(t => `<div class="lc-gl ${t === 0 ? 'zero' : ''}" style="top:${py(t)}%"></div>`).join('')}
+      ${points.map((p, i) => `<div class="lc-hit" style="left:${px(i) - w / 2}%;width:${w}%" ${tipAttr(p.label, ...p.tip)}></div>`).join('')}
+      <svg viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
+        <polyline fill="none" stroke="var(--s1)" stroke-width="2" vector-effect="non-scaling-stroke" stroke-linejoin="round"
+          points="${points.map((p, i) => `${px(i)},${py(p.y)}`).join(' ')}"/>
+      </svg>
+      ${points.map((p, i) => `<div class="lc-dot" style="left:${px(i)}%;top:${py(p.y)}%"></div>`).join('')}
+    </div>
+    <div class="lc-x">${points.map((p, i) => `<span style="left:${px(i)}%">${esc(p.short)}</span>`).join('')}</div>
+  </div>${yNote ? `<p class="note" style="margin:8px 0 0">${yNote}</p>` : ''}`;
+}
+
+function diverging(rows, nameA, nameB) {
+  if (!rows.length) return EMPTY('These two players have no sectors in common on this map.');
+  const maxAbs = Math.max(...rows.map(r => Math.abs(r.d)), 0.001);
+  return `<div class="legend">
+      <span><i class="sw" style="background:var(--s1)"></i>${esc(nameA)} faster (bar goes left)</span>
+      <span><i class="sw" style="background:var(--s2)"></i>${esc(nameB)} faster (bar goes right)</span></div>
+    ${rows.map(r => {
+      const w = Math.abs(r.d) / maxAbs * 44, left = r.d < 0;
+      const faster = left ? nameA : nameB;
+      return `<div class="dv-row" ${tipAttr('CP' + r.cp, `${nameA}: ${fS(r.a)}s (${r.na} runs)`, `${nameB}: ${fS(r.b)}s (${r.nb} runs)`, `${faster} faster by ${fS(Math.abs(r.d))}s`)}>
+        <div class="dv-label">CP${r.cp}</div>
+        <div class="dv-track"><div class="dv-mid"></div>
+          <div class="dv-bar ${left ? 'l' : 'r'}" style="${left ? `right:50%` : `left:50%`};width:${w}%;background:${left ? 'var(--s1)' : 'var(--s2)'}"></div>
+          <div class="dv-num" style="${left ? `right:calc(50% + ${w}% + 6px)` : `left:calc(50% + ${w}% + 6px)`}">${fS(Math.abs(r.d))}</div>
+        </div></div>`;
+    }).join('')}`;
 }
 
 function donut(fin, dnf) {
   const total = fin + dnf;
-  if (!total) return `<div class="empty">No rounds match these filters.</div>`;
+  if (!total) return EMPTY();
   const r = 46, C = 2 * Math.PI * r, gap = fin && dnf ? 2 : 0;
   const a = (fin / total) * C, b = (dnf / total) * C;
+  const tFin = tipAttr('Finished', `${fN(fin)} rounds (${fP(fin / total)})`), tDnf = tipAttr('DNF', `${fN(dnf)} rounds (${fP(dnf / total)})`);
   return `<div class="donut">
     <svg viewBox="0 0 120 120" role="img" aria-label="Finished ${fin}, DNF ${dnf}">
-      <g transform="rotate(-90 60 60)" fill="none" stroke-width="16">
-        ${fin ? `<circle cx="60" cy="60" r="${r}" stroke="var(--s1)" stroke-dasharray="${Math.max(a - gap, 0)} ${C}" data-tip="Finished\n${fN(fin)} rounds (${fP(fin / total)})"/>` : ''}
-        ${dnf ? `<circle cx="60" cy="60" r="${r}" stroke="var(--bad)" stroke-dasharray="${Math.max(b - gap, 0)} ${C}" stroke-dashoffset="${-a}" data-tip="DNF\n${fN(dnf)} rounds (${fP(dnf / total)})"/>` : ''}
+      <g transform="rotate(-90 60 60)" fill="none" stroke-width="18">
+        ${fin ? `<circle cx="60" cy="60" r="${r}" stroke="var(--s1)" stroke-dasharray="${Math.max(a - gap, 0)} ${C}" ${tFin}/>` : ''}
+        ${dnf ? `<circle cx="60" cy="60" r="${r}" stroke="var(--bad)" stroke-dasharray="${Math.max(b - gap, 0.5)} ${C}" stroke-dashoffset="${-a}" ${tDnf}/>` : ''}
       </g>
       <text x="60" y="58" text-anchor="middle" font-size="20" font-weight="600" fill="var(--ink)">${fP(fin / total)}</text>
       <text x="60" y="76" text-anchor="middle" font-size="10" fill="var(--ink2)">finished</text>
     </svg>
     <div class="dl">
-      <span><i class="sw" style="background:var(--s1)"></i> Finished <b>${fN(fin)}</b> (${fP(fin / total)})</span>
-      <span><i class="sw" style="background:var(--bad)"></i> DNF <b>${fN(dnf)}</b> (${fP(dnf / total)})</span>
+      <span ${tFin}><i class="sw" style="background:var(--s1)"></i> Finished <b>${fN(fin)}</b></span>
+      <span ${tDnf}><i class="sw" style="background:var(--bad)"></i> DNF <b>${fN(dnf)}</b></span>
     </div>
   </div>`;
 }
 
-function table(cols, rows, sortKey, sortDir, id) {
-  if (!rows.length) return `<div class="empty">No rounds match these filters.</div>`;
-  const sorted = [...rows].sort((a, b) => {
+function table(cols, rows, id, opts = {}) {
+  if (!rows.length) return EMPTY(opts.empty);
+  const [sortKey, sortDir] = state.sort[id];
+  let sorted = [...rows].sort((a, b) => {
     const x = a[sortKey], y = b[sortKey];
-    if (x == null) return 1; if (y == null) return -1;
+    if (x == null && y == null) return 0; if (x == null) return 1; if (y == null) return -1;
     const c = typeof x === 'string' ? byName(x, y) : x - y;
     return sortDir === 'asc' ? c : -c;
   });
+  const total = sorted.length;
+  if (opts.limit && !opts.showAll) sorted = sorted.slice(0, opts.limit);
   return `<div class="scroll"><table>
-    <thead><tr>${cols.map(c => `<th class="sortable ${c.num ? 'n' : ''}" data-sort="${id}:${c.key}">${esc(c.label)}${c.key === sortKey ? (sortDir === 'asc' ? ' ▲' : ' ▼') : ''}</th>`).join('')}</tr></thead>
-    <tbody>${sorted.map(r => `<tr>${cols.map(c => `<td class="${c.num ? 'n' : ''}">${c.fmt ? c.fmt(r[c.key]) : esc(r[c.key])}</td>`).join('')}</tr>`).join('')}</tbody>
-  </table></div>`;
+    <thead><tr>${opts.rank ? '<th class="rank">#</th>' : ''}${cols.map(c => `<th class="sortable ${c.num ? 'n' : ''}" data-sort="${id}:${c.key}" tabindex="0">${esc(c.label)}${c.key === sortKey ? ` <span class="arr">${sortDir === 'asc' ? '▲' : '▼'}</span>` : ''}</th>`).join('')}</tr></thead>
+    <tbody>${sorted.map((r, i) => `<tr class="${opts.hl && opts.hl(r) ? 'hl' : ''}">${opts.rank ? `<td class="rank n">${i + 1}</td>` : ''}${cols.map(c => `<td class="${c.num ? 'n' : ''} ${c.cls ? c.cls(r[c.key]) : ''}">${c.fmt ? c.fmt(r[c.key], r) : esc(r[c.key])}</td>`).join('')}</tr>`).join('')}</tbody>
+  </table></div>
+  ${opts.limit && total > opts.limit ? `<button class="btn more" data-toggle="${opts.toggle}">${opts.showAll ? 'Show fewer' : `Show all ${total}`}</button>` : ''}`;
+}
+
+function select(id, label, options, value, allLabel, cls = '') {
+  return `<label class="${cls}">${esc(label)}<select data-f="${id}">
+    ${allLabel ? `<option value="">${esc(allLabel)}</option>` : ''}
+    ${options.map(o => { const v = String(o.value ?? o); return `<option value="${esc(v)}" ${v === String(value) ? 'selected' : ''}>${esc(o.label ?? o)}</option>`; }).join('')}
+  </select></label>`;
+}
+const mapOpts = () => uniq(RUNS, 'map').map(m => ({ value: m, label: shortMap(m) }));
+
+// ---------- state & URL ----------
+
+let RUNS = [], MATCHES = [];
+const TABS = ['overview', 'leaders', 'player', 'sectors', 'h2h'];
+const URL_KEYS = { overview: ['week', 'team'], leaders: ['map', 'min'], player: ['player', 'map'], sectors: ['map', 'min'], h2h: ['map', 'a', 'b'] };
+const GROUP = { overview: 'ov', leaders: 'lb', player: 'pl', sectors: 'sec', h2h: 'h2h' };
+const state = {
+  tab: 'overview',
+  ov: { week: '', team: '' },
+  lb: { map: '', min: '20', all: false },
+  pl: { player: '', map: '' },
+  sec: { map: '', min: '3' },
+  h2h: { map: '', a: '', b: '' },
+  sort: { standings: ['standing', 'desc'], rank: ['pace', 'asc'], plmaps: ['pb', 'asc'], pbs: ['best', 'asc'] },
+};
+
+function readHash() {
+  const [tab, qs] = location.hash.slice(1).split('?');
+  if (TABS.includes(tab)) state.tab = tab;
+  if (qs) {
+    const p = new URLSearchParams(qs), g = state[GROUP[state.tab]];
+    for (const k of URL_KEYS[state.tab]) if (p.has(k)) g[k] = p.get(k);
+  }
+}
+function writeHash() {
+  const g = state[GROUP[state.tab]], p = new URLSearchParams();
+  for (const k of URL_KEYS[state.tab]) if (g[k]) p.set(k, g[k]);
+  const qs = p.toString();
+  history.replaceState(null, '', '#' + state.tab + (qs ? '?' + qs : ''));
 }
 
 // ---------- pages ----------
 
-let RUNS = [];
-const state = {
-  tab: 'overview',
-  ov: { map: '', team: '', match: '' },
-  pl: { player: '', map: '' },
-  sec: { map: '' },
-  sort: { teams: ['winRate', 'desc'], plmaps: ['best', 'asc'] },
-};
-
-function select(id, label, options, value, allLabel) {
-  return `<label>${esc(label)}<select data-f="${id}">
-    ${allLabel ? `<option value="">${esc(allLabel)}</option>` : ''}
-    ${options.map(o => `<option value="${esc(o.value ?? o)}" ${(o.value ?? o) === value ? 'selected' : ''}>${esc(o.label ?? o)}</option>`).join('')}
-  </select></label>`;
-}
-
 function renderOverview() {
   const f = state.ov;
-  const runs = RUNS.filter(r => (!f.map || r.map === f.map) && (!f.team || r.team === f.team) && (!f.match || r.match === f.match));
+  const inWeek = r => !f.week || r.week === Number(f.week);
+  const runs = RUNS.filter(r => inWeek(r) && (!f.team || r.team === f.team));
+  const matches = MATCHES.filter(m => (!f.week || m.week === Number(f.week)));
   const a = agg(runs);
-  const maps = uniq(runs, 'map').map(m => { const s = agg(runs.filter(r => r.map === m)); return { label: shortMap(m), a: s.best, b: s.avg }; })
-    .sort((x, y) => (x.a ?? 1e9) - (y.a ?? 1e9));
-  const teams = uniq(runs, 'team').map(t => { const s = agg(runs.filter(r => r.team === t)); return { team: t, ...s }; });
+
+  // standings from all teams in the chosen week(s)
+  const weekRuns = RUNS.filter(inWeek);
+  const teams = uniq(weekRuns, 'team').map(t => {
+    const s = agg(weekRuns.filter(r => r.team === t));
+    let mw = 0, ml = 0, pw = 0, pl = 0;
+    for (const m of matches) {
+      const mine = m.teams.find(x => x[0] === t); if (!mine) continue;
+      const opp = m.teams.find(x => x[0] !== t);
+      pw += mine[1]; pl += opp ? opp[1] : 0;
+      if (m.winner === t) mw++; else if (m.winner) ml++;
+    }
+    // standing: match wins first, map difference breaks ties
+    return { team: t, mw, ml, maps: `${pw}–${pl}`, mapDiff: pw - pl, standing: mw * 1000 + (pw - pl), ...s };
+  });
+
+  const mapItems = uniq(runs, 'map').map(m => {
+    const mr = runs.filter(r => r.map === m), s = agg(mr), pb = personalBests(mr)[0];
+    return { label: shortMap(m), a: s.best, b: s.avg,
+      tip: [`Best ${fS(s.best)}s${pb ? ` (${pb.player})` : ''}`, `Average ${fS(s.avg)}s`, `Gap ${fS(s.avg - s.best)}s · ${fN(s.n)} rounds`] };
+  }).sort((x, y) => (x.a ?? 1e9) - (y.a ?? 1e9));
+
+  const shown = matches.filter(m => !f.team || m.teams.some(t => t[0] === f.team));
+  let lastWeek = null;
+  const results = shown.map(m => {
+    const [t1, t2] = m.teams;
+    const head = m.week !== lastWeek ? `<div class="wk">${m.week != null ? 'Week ' + m.week : 'Other'}</div>` : '';
+    lastWeek = m.week;
+    const detail = m.maps.map(x => `${shortMap(x.map)}: ${x.score.map(s => `${s[0]} ${s[1]}`).join(', ')}`);
+    return head + `<div class="mr" ${tipAttr(m.match, ...detail, m.decided ? '' : 'Not finished yet')}>
+      <span class="t ${m.winner === t1?.[0] ? 'w' : ''}">${esc(t1?.[0])}</span>
+      <span class="sc">${t1?.[1] ?? 0}–${t2?.[1] ?? 0}</span>
+      <span class="t ${m.winner === t2?.[0] ? 'w' : ''}">${esc(t2?.[0] ?? '–')}</span></div>`;
+  }).join('');
+
   return `
     <div class="filters">
-      ${select('ov.map', 'Map', uniq(RUNS, 'map').map(m => ({ value: m, label: shortMap(m) })), f.map, 'All maps')}
-      ${select('ov.team', 'Team', uniq(RUNS, 'team'), f.team, 'All teams')}
-      ${select('ov.match', 'Match', uniq(RUNS, 'match'), f.match, 'All matches')}
+      ${select('ov.week', 'Week', weeksOf(RUNS).map(w => ({ value: w, label: 'Week ' + w })), f.week, 'All weeks', 'sm')}
+      ${select('ov.team', 'Team', uniq(RUNS, 'team'), f.team, 'All teams', 'sm')}
     </div>
     <div class="tiles">
+      ${tile('Matches', fN(shown.length), `${fN(new Set(runs.map(r => r.match + r.map)).size)} maps played`)}
       ${tile('Rounds played', fN(a.n))}
       ${tile('Finish rate', fP(a.finishRate))}
-      ${tile('Avg time', fS(a.avg) + 's')}
       ${tile('Respawns per round', f2(a.respPerRound))}
     </div>
     <div class="grid2">
-      <div class="card"><h2>Best vs average time by map</h2><p class="note">Sorted fastest first. The gap between the dots is how far the field sits from the best run.</p>${dotPlot(maps, 'Best time', 'Avg time')}</div>
-      <div class="card"><h2>Team standings</h2><p class="note">Click a column header to sort.</p>
+      <div class="card"><h2>Standings</h2><p class="note">Match wins, then map difference. Tap a column to sort.</p>
         ${table([
           { key: 'team', label: 'Team' },
-          { key: 'winRate', label: 'Round win rate', num: true, fmt: fP },
-          { key: 'avgPts', label: 'Avg points', num: true, fmt: f2 },
-          { key: 'finishRate', label: 'Finish rate', num: true, fmt: fP },
+          { key: 'standing', label: 'W–L', num: true, fmt: (v, r) => `${r.mw}–${r.ml}` },
+          { key: 'mapDiff', label: 'Maps', num: true, fmt: (v, r) => r.maps },
+          { key: 'winRate', label: 'Rounds won', num: true, fmt: fP },
+          { key: 'finishRate', label: 'Finish', num: true, fmt: fP },
+        ], teams, 'standings', { rank: state.sort.standings[0] === 'standing', hl: r => r.team === f.team })}
+      </div>
+      <div class="card"><h2>Match results</h2><p class="note">Maps won in each match. Tap a match for the map-by-map rounds.</p>
+        <div class="results">${results || EMPTY()}</div>
+      </div>
+    </div>
+    <div class="card"><h2>Best vs average time by map</h2><p class="note">Fastest maps at the top. A long line means the field is far off the best run.</p>
+      ${dotPlot(mapItems, 'Best time', 'Average time')}</div>`;
+}
+
+function renderLeaders() {
+  const f = state.lb;
+  const maps = uniq(RUNS, 'map');
+  if (!maps.includes(f.map)) f.map = maps[0] || '';
+  const mapRuns = RUNS.filter(r => r.map === f.map);
+  const pbs = personalBests(mapRuns);
+  const leader = pbs[0]?.final;
+  const pbRows = pbs.map(r => ({ player: r.player, team: r.team, best: r.final / 1000, gap: (r.final - leader) / 1000,
+    week: r.week, runs: mapRuns.filter(x => x.player === r.player).length }));
+
+  const min = Number(f.min) || 0;
+  const rankRows = uniq(RUNS, 'player').map(p => {
+    const pr = RUNS.filter(r => r.player === p);
+    return { player: p, team: uniq(pr, 'team').join(', '), ...agg(pr) };
+  }).filter(r => r.n >= min);
+
+  return `
+    <div class="filters">
+      ${select('lb.map', 'Map (personal bests)', mapOpts(), f.map)}
+      ${select('lb.min', 'Rankings: min. rounds', [1, 10, 20, 50, 100].map(v => ({ value: v, label: v + '+ rounds' })), f.min, '', 'sm')}
+    </div>
+    <div class="grid2">
+      <div class="card"><h2>Personal bests · ${esc(shortMap(f.map))}</h2><p class="note">Each player's fastest finish on this map.</p>
+        ${table([
+          { key: 'player', label: 'Player' },
+          { key: 'best', label: 'Time', num: true, fmt: fS },
+          { key: 'gap', label: 'Gap', num: true, fmt: v => v ? '+' + fS(v) : '–' },
+          { key: 'runs', label: 'Runs', num: true, fmt: fN },
+        ], pbRows, 'pbs', { rank: true, limit: 10, showAll: f.all, toggle: 'lb.all' })}
+      </div>
+      <div class="card"><h2>Player rankings</h2><p class="note">All maps. Pace is the average gap to the typical time on each map (lower is faster).</p>
+        ${table([
+          { key: 'player', label: 'Player' },
+          { key: 'pace', label: 'Pace', num: true, fmt: fPace, cls: paceCls },
+          { key: 'winRate', label: 'Rounds won', num: true, fmt: fP },
+          { key: 'avgPts', label: 'Avg pts', num: true, fmt: f2 },
+          { key: 'finishRate', label: 'Finish', num: true, fmt: fP },
           { key: 'n', label: 'Rounds', num: true, fmt: fN },
-        ], teams, ...state.sort.teams, 'teams')}
+        ], rankRows, 'rank', { rank: true, empty: 'No players with that many rounds.' })}
       </div>
     </div>`;
 }
 
 function renderPlayer() {
   const f = state.pl;
-  if (!f.player) {
+  const players = uniq(RUNS, 'player');
+  if (!players.includes(f.player)) {
     const counts = new Map(); RUNS.forEach(r => counts.set(r.player, (counts.get(r.player) || 0) + 1));
     f.player = [...counts.entries()].sort((a, b) => b[1] - a[1])[0]?.[0] || '';
   }
-  const runs = RUNS.filter(r => r.player === f.player && (!f.map || r.map === f.map));
+  const all = RUNS.filter(r => r.player === f.player);
+  const runs = all.filter(r => !f.map || r.map === f.map);
   const a = agg(runs);
   const fin = runs.filter(r => r.finished).length;
-  const maps = uniq(runs, 'map').map(m => ({ map: shortMap(m), ...agg(runs.filter(r => r.map === m)) }));
-  const team = uniq(runs, 'team').join(', ');
+  const team = uniq(all, 'team').join(', ');
+
+  const maps = uniq(runs, 'map').map(m => {
+    const pbs = personalBests(RUNS.filter(r => r.map === m));
+    const rank = pbs.findIndex(r => r.player === f.player);
+    const s = agg(runs.filter(r => r.map === m));
+    return { map: shortMap(m), pb: s.best, rank: rank >= 0 ? rank + 1 : null, of: pbs.length, ...s };
+  });
+
+  const weeks = weeksOf(runs).map(w => {
+    const wr = runs.filter(r => r.week === w && r.pace != null);
+    return wr.length ? { x: w, label: 'Week ' + w, short: 'W' + w, y: mean(wr.map(r => r.pace)),
+      tip: [`Pace ${fPace(mean(wr.map(r => r.pace)))} vs the field`, `${wr.length} finished runs`] } : null;
+  }).filter(Boolean);
+
   return `
     <div class="filters">
-      ${select('pl.player', 'Player', uniq(RUNS, 'player'), f.player)}
-      ${select('pl.map', 'Map', uniq(RUNS, 'map').map(m => ({ value: m, label: shortMap(m) })), f.map, 'All maps')}
+      ${select('pl.player', 'Player', players, f.player)}
+      ${select('pl.map', 'Map', mapOpts(), f.map, 'All maps')}
     </div>
     <div class="tiles">
-      ${tile('Best time', fS(a.best) + 's', team ? esc(team) : '')}
-      ${tile('Avg time', fS(a.avg) + 's')}
-      ${tile('Round win rate', fP(a.winRate))}
+      ${tile('Pace vs field', fPace(a.pace), team ? esc(team) : '', paceCls(a.pace))}
+      ${tile('Round win rate', fP(a.winRate), `${fN(a.n)} rounds`)}
+      ${tile(f.map ? 'Best time' : 'Avg points', f.map ? fS(a.best) + 's' : f2(a.avgPts))}
       ${tile('Avg respawn loss', fS(a.avgLoss) + 's', 'per round')}
     </div>
     <div class="grid2">
+      <div class="card"><h2>Pace by week</h2><p class="note">Below 0% is faster than the typical runner on the same maps.</p>
+        ${lineChart(weeks, v => (v > 0 ? '+' : v < 0 ? '−' : '') + +Math.abs(v * 100).toFixed(1) + '%')}</div>
       <div class="card"><h2>Finish record</h2><p class="note">${fN(a.n)} rounds</p>${donut(fin, a.n - fin)}</div>
-      <div class="card"><h2>By map</h2><p class="note">Click a column header to sort.</p>
-        ${table([
-          { key: 'map', label: 'Map' },
-          { key: 'best', label: 'Best', num: true, fmt: fS },
-          { key: 'avg', label: 'Avg', num: true, fmt: fS },
-          { key: 'finishRate', label: 'Finish rate', num: true, fmt: fP },
-          { key: 'respPerRound', label: 'Respawns / round', num: true, fmt: f2 },
-          { key: 'n', label: 'Rounds', num: true, fmt: fN },
-        ], maps, ...state.sort.plmaps, 'plmaps')}
-      </div>
+    </div>
+    <div class="card"><h2>By map</h2><p class="note">Rank is this player's personal best against everyone else's on that map.</p>
+      ${table([
+        { key: 'map', label: 'Map' },
+        { key: 'pb', label: 'Best', num: true, fmt: fS },
+        { key: 'rank', label: 'Rank', num: true, fmt: (v, r) => v ? `${v} of ${r.of}` : '–' },
+        { key: 'avg', label: 'Avg', num: true, fmt: fS },
+        { key: 'pace', label: 'Pace', num: true, fmt: fPace, cls: paceCls },
+        { key: 'finishRate', label: 'Finish', num: true, fmt: fP },
+        { key: 'n', label: 'Rounds', num: true, fmt: fN },
+      ], maps, 'plmaps')}
     </div>`;
 }
 
-function heatmap(runs) {
-  const players = uniq(runs, 'player');
-  if (!players.length) return `<div class="empty">No rounds on this map.</div>`;
+function heatmap(runs, min) {
+  const players = uniq(runs, 'player').filter(p => runs.filter(r => r.player === p).length >= min);
+  if (!players.length) return EMPTY('No players with that many runs on this map.');
   const cps = [...new Set(runs.flatMap(r => r.splits.map(s => s.cp)))].sort((a, b) => a - b);
   const rows = players.map(p => {
     const pr = runs.filter(r => r.player === p);
-    const segs = {};
-    for (const cp of cps) {
-      const v = pr.flatMap(r => r.splits.filter(s => s.cp === cp).map(s => s.seg));
-      segs[cp] = v.length ? { avg: mean(v) / 1000, n: v.length } : null;
-    }
-    return { player: p, n: pr.length, avg: agg(pr).avg, segs };
+    return { player: p, n: pr.length, avg: agg(pr).avg, segs: playerSegs(pr, p) };
   }).sort((a, b) => (a.avg ?? 1e9) - (b.avg ?? 1e9));
 
-  const q = (arr, p) => { const s = [...arr].sort((a, b) => a - b); const i = (s.length - 1) * p, lo = Math.floor(i); return s[lo] + (s[Math.ceil(i)] - s[lo]) * (i - lo); };
   const colStats = {};
   for (const cp of cps) {
-    const v = rows.map(r => r.segs[cp]?.avg).filter(x => x != null);
-    colStats[cp] = { med: q(v, 0.5), p10: q(v, 0.1), p90: q(v, 0.9) };
+    const v = rows.map(r => r.segs.get(cp)?.avg).filter(x => x != null);
+    colStats[cp] = v.length ? { med: quantile(v, 0.5), p10: quantile(v, 0.1), p90: quantile(v, 0.9) } : null;
   }
   const lo = cssVar('--lo'), mid = cssVar('--mid'), hi = cssVar('--hi');
   const cell = (cp, s, player) => {
-    if (!s) return `<td class="c"></td>`;
+    if (!s || !colStats[cp]) return `<td class="c"></td>`;
     const { med, p10, p90 } = colStats[cp];
     let t = s.avg < med ? -(med - s.avg) / ((med - p10) || 1) : (s.avg - med) / ((p90 - med) || 1);
     t = Math.max(-1, Math.min(1, t));
     const rgb = t < 0 ? mix(mid, lo, -t) : mix(mid, hi, t);
     const ink = lum(rgb) > 0.35 ? '#0b0b0b' : '#ffffff';
     const diff = s.avg - med;
-    return `<td class="c" style="background:rgb(${rgb});color:${ink}" data-tip="${esc(player)} · CP${cp}\nAvg ${fS(s.avg)}s over ${s.n} runs\n${diff <= 0 ? fS(-diff) + 's faster' : fS(diff) + 's slower'} than the sector median">${s.avg.toFixed(2)}</td>`;
+    return `<td class="c" style="background:rgb(${rgb});color:${ink}" ${tipAttr(`${player} · CP${cp}`, `Average ${fS(s.avg)}s over ${s.n} runs`, `${diff <= 0 ? fS(-diff) + 's faster' : fS(diff) + 's slower'} than the median player`)}>${s.avg.toFixed(2)}</td>`;
   };
   return `
-    <div class="hm-legend">Faster
-      <span class="hm-grad" style="background:linear-gradient(90deg, var(--lo), var(--mid), var(--hi))"></span>
-      Slower (vs. sector median)</div>
+    <div class="hm-legend">Faster <span class="hm-grad" style="background:linear-gradient(90deg, var(--lo), var(--mid), var(--hi))"></span> Slower (vs. other players in that sector)</div>
     <div class="scroll"><table class="hm">
-      <thead><tr><th>Player</th><th class="n">Runs</th><th class="n">Avg time</th>${cps.map(c => `<th class="n">CP${c}</th>`).join('')}</tr></thead>
-      <tbody>${rows.map(r => `<tr><td>${esc(r.player)}</td><td class="n">${r.n}</td><td class="n">${fS(r.avg)}</td>${cps.map(c => cell(c, r.segs[c], r.player)).join('')}</tr>`).join('')}</tbody>
+      <thead><tr><th>Player</th><th class="n">Runs</th><th class="n">Avg</th>${cps.map(c => `<th class="n">CP${c}</th>`).join('')}</tr></thead>
+      <tbody>${rows.map(r => `<tr><td>${esc(r.player)}</td><td class="n">${r.n}</td><td class="n">${fS(r.avg)}</td>${cps.map(c => cell(c, r.segs.get(c), r.player)).join('')}</tr>`).join('')}</tbody>
     </table></div>`;
 }
 
 function renderSectors() {
   const f = state.sec;
   const maps = uniq(RUNS, 'map');
-  if (!f.map) f.map = maps[0] || '';
+  if (!maps.includes(f.map)) f.map = maps[0] || '';
   const runs = RUNS.filter(r => r.map === f.map);
   const a = agg(runs);
   const sec = sectorStats(runs);
   const sob = sec.length ? sum(sec.map(s => s.best)) : null;
-  const bestRun = runs.filter(r => r.final != null).sort((x, y) => x.final - y.final)[0];
+  const bestRun = personalBests(runs)[0];
   return `
-    <div class="filters">${select('sec.map', 'Map', maps.map(m => ({ value: m, label: shortMap(m) })), f.map)}</div>
-    <div class="tiles">
-      ${tile('Fastest actual run', fS(a.best) + 's', bestRun ? esc(bestRun.player) : '')}
-      ${tile('Theoretical best', fS(sob) + 's', 'best time in every sector, added up')}
-      ${tile('Time left on the table', fS(a.best != null && sob != null ? a.best - sob : null) + 's', 'fastest run minus theoretical best')}
+    <div class="filters">
+      ${select('sec.map', 'Map', maps.map(m => ({ value: m, label: shortMap(m) })), f.map)}
+      ${select('sec.min', 'Heatmap: min. runs', [1, 3, 5, 10].map(v => ({ value: v, label: v + '+ runs' })), f.min, '', 'sm')}
     </div>
-    <div class="card"><h2>Sector heatmap</h2>
-      <p class="note">Average time per sector for each player, fastest overall at the top. Colour compares players within the same sector, so read down a column.</p>
-      ${heatmap(runs)}
+    <div class="tiles">
+      ${tile('Fastest run', fS(a.best) + 's', bestRun ? esc(bestRun.player) : '')}
+      ${tile('Theoretical best', fS(sob) + 's', 'best of every sector')}
+      ${tile('Left on the table', fS(a.best != null && sob != null ? a.best - sob : null) + 's', 'fastest run minus theoretical')}
+      ${tile('Sectors', fN(sec.length), `${fN(a.n)} rounds on this map`)}
     </div>
     <div class="grid2">
-      <div class="card"><h2>Average time lost vs best, by sector</h2><p class="note">Tall bars are the least consistent sectors.</p>
-        ${colChart(sec.map(s => ({ label: 'CP' + s.cp, value: s.gap, tip: `CP${s.cp}\nAvg ${fS(s.avg)}s, best ${fS(s.best)}s\nGap ${fS(s.gap)}s over ${s.n} runs` })), 'var(--s1)', 's')}
+      <div class="card"><h2>Time lost vs best, by sector</h2><p class="note">Average minus best. Tall bars are the least consistent sectors.</p>
+        ${colChart(sec.map(s => ({ label: 'CP' + s.cp, value: s.gap, tip: [`Average ${fS(s.avg)}s`, `Best ${fS(s.best)}s`, `Gap ${fS(s.gap)}s · ${fN(s.n)} runs`] })), 'var(--s1)', 's')}
       </div>
-      <div class="card"><h2>Total time lost to respawns, by sector</h2><p class="note">All runs on this map combined.</p>
-        ${colChart(sec.map(s => ({ label: 'CP' + s.cp, value: s.loss, tip: `CP${s.cp}\n${fS(s.loss)}s lost to respawns` })), 'var(--s2)', 's')}
+      <div class="card"><h2>Time lost to respawns, by sector</h2><p class="note">All runs on this map combined.</p>
+        ${colChart(sec.map(s => ({ label: 'CP' + s.cp, value: s.loss, tip: [`${fS(s.loss)}s lost to respawns`, `across ${fN(s.n)} runs`] })), 'var(--s2)', 's')}
       </div>
+    </div>
+    <div class="card"><h2>Sector heatmap</h2>
+      <p class="note">Each player's average time per sector, fastest overall at the top. Colours compare players within a sector, so read down a column.</p>
+      ${heatmap(runs, Number(f.min) || 1)}
+    </div>`;
+}
+
+function renderH2H() {
+  const f = state.h2h;
+  const maps = uniq(RUNS, 'map');
+  if (!maps.includes(f.map)) f.map = maps[0] || '';
+  const runs = RUNS.filter(r => r.map === f.map);
+  const ranked = uniq(runs, 'player').map(p => ({ p, s: agg(runs.filter(r => r.player === p)) }))
+    .sort((x, y) => (y.s.n >= 3) - (x.s.n >= 3) || (x.s.avg ?? 1e9) - (y.s.avg ?? 1e9));
+  const players = ranked.map(x => x.p).sort(byName);
+  if (!players.includes(f.a)) f.a = ranked[0]?.p || '';
+  if (!players.includes(f.b) || f.b === f.a) f.b = ranked.find(x => x.p !== f.a)?.p || '';
+  const A = agg(runs.filter(r => r.player === f.a)), B = agg(runs.filter(r => r.player === f.b));
+  const sa = playerSegs(runs, f.a), sb = playerSegs(runs, f.b);
+  const rows = [...sa.keys()].filter(cp => sb.has(cp)).sort((x, y) => x - y)
+    .map(cp => ({ cp, a: sa.get(cp).avg, b: sb.get(cp).avg, na: sa.get(cp).n, nb: sb.get(cp).n, d: sa.get(cp).avg - sb.get(cp).avg }));
+  const gap = A.avg != null && B.avg != null ? A.avg - B.avg : null;
+  const ahead = gap == null ? '' : gap < 0 ? f.a : gap > 0 ? f.b : '';
+  const aWins = rows.filter(r => r.d < 0).length, bWins = rows.filter(r => r.d > 0).length;
+  return `
+    <div class="filters">
+      ${select('h2h.map', 'Map', maps.map(m => ({ value: m, label: shortMap(m) })), f.map)}
+      ${select('h2h.a', 'Player A (blue)', players, f.a, '', 'sm')}
+      <button class="btn swap" data-swap type="button" aria-label="Swap players">⇄ Swap</button>
+      ${select('h2h.b', 'Player B (orange)', players, f.b, '', 'sm')}
+    </div>
+    <div class="tiles">
+      ${tile(f.a, fS(A.avg) + 's', `avg · best ${fS(A.best)}s · ${fN(A.n)} runs`)}
+      ${tile(f.b, fS(B.avg) + 's', `avg · best ${fS(B.best)}s · ${fN(B.n)} runs`)}
+      ${tile('Average gap', gap == null ? '–' : fS(Math.abs(gap)) + 's', ahead ? `${esc(ahead)} ahead` : '')}
+      ${tile('Sectors won', `${aWins}–${bWins}`, `${esc(f.a)} vs ${esc(f.b)}`)}
+    </div>
+    <div class="card"><h2>Sector by sector</h2><p class="note">Difference in average sector time. Tap a row for both players' numbers.</p>
+      ${f.a && f.b ? diverging(rows, f.a, f.b) : EMPTY('Pick two players.')}
     </div>`;
 }
 
 const main = document.getElementById('main');
 function render() {
+  hideTip();
   document.querySelectorAll('nav.tabs button').forEach(b => b.setAttribute('aria-selected', String(b.dataset.tab === state.tab)));
   if (!RUNS.length) return;
-  main.innerHTML = state.tab === 'player' ? renderPlayer() : state.tab === 'sectors' ? renderSectors() : renderOverview();
+  const fn = { overview: renderOverview, leaders: renderLeaders, player: renderPlayer, sectors: renderSectors, h2h: renderH2H }[state.tab];
+  main.innerHTML = fn();
+  writeHash();
 }
 
-// ---------- events ----------
+// ---------- tooltip: hover with a mouse, tap on touch, focus with a keyboard ----------
+
+const tip = document.getElementById('tip');
+let tipEl = null, pinned = false, lastPointer = 'mouse';
+function showTip(el) {
+  if (tipEl && tipEl !== el) tipEl.classList.remove('is-active');
+  tipEl = el; el.classList.add('is-active');
+  const [title, ...rest] = el.dataset.tip.split('\n');
+  tip.innerHTML = `<b>${esc(title)}</b>${esc(rest.filter(Boolean).join('\n'))}`;
+  tip.style.display = 'block';
+  const r = el.getBoundingClientRect(), w = tip.offsetWidth, h = tip.offsetHeight;
+  let x = r.left + r.width / 2 - w / 2, y = r.top - h - 8;
+  if (y < 8) y = r.bottom + 8;
+  if (y + h > innerHeight - 8) y = Math.max(8, innerHeight - h - 8);
+  x = Math.max(8, Math.min(x, innerWidth - w - 8));
+  tip.style.left = x + 'px'; tip.style.top = y + 'px';
+}
+function hideTip() {
+  if (tipEl) tipEl.classList.remove('is-active');
+  tipEl = null; pinned = false; tip.style.display = 'none';
+}
+document.addEventListener('pointerdown', e => { lastPointer = e.pointerType; }, true);
+document.addEventListener('pointerover', e => {
+  if (e.pointerType !== 'mouse' || pinned) return;
+  const t = e.target.closest('[data-tip]');
+  if (t) showTip(t);
+});
+document.addEventListener('pointerout', e => {
+  if (e.pointerType !== 'mouse' || pinned || !tipEl) return;
+  if (!tipEl.contains(e.relatedTarget)) hideTip();
+});
+document.addEventListener('click', e => {
+  const t = e.target.closest('[data-tip]');
+  if (lastPointer === 'mouse') return;            // mouse users get hover; clicks don't pin
+  if (!t) { hideTip(); return; }
+  if (tipEl === t && pinned) hideTip(); else { showTip(t); pinned = true; }
+});
+document.addEventListener('focusin', e => { const t = e.target.closest?.('[data-tip]'); if (t && lastPointer !== 'touch') { showTip(t); } });
+document.addEventListener('focusout', e => { if (!pinned && tipEl && e.target === tipEl) hideTip(); });
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') hideTip();
+  if ((e.key === 'Enter' || e.key === ' ') && e.target.matches?.('th[data-sort]')) { e.preventDefault(); e.target.click(); }
+});
+addEventListener('scroll', () => { if (tipEl) hideTip(); }, { passive: true, capture: true });
+addEventListener('resize', hideTip);
+
+// ---------- controls ----------
 
 document.querySelector('nav.tabs').addEventListener('click', e => {
   const b = e.target.closest('button[data-tab]'); if (!b) return;
-  state.tab = b.dataset.tab; history.replaceState(null, '', '#' + state.tab); render();
+  state.tab = b.dataset.tab; render();
+  b.scrollIntoView({ block: 'nearest', inline: 'nearest' });
 });
 main.addEventListener('change', e => {
   const s = e.target.closest('select[data-f]'); if (!s) return;
-  const [grp, key] = s.dataset.f.split('.'); state[grp][key] = s.value; render();
-});
-main.addEventListener('click', e => {
-  const th = e.target.closest('th[data-sort]'); if (!th) return;
-  const [id, key] = th.dataset.sort.split(':');
-  const [cur, dir] = state.sort[id];
-  state.sort[id] = [key, cur === key ? (dir === 'asc' ? 'desc' : 'asc') : (key === 'team' || key === 'map' ? 'asc' : 'desc')];
+  const [grp, key] = s.dataset.f.split('.'); state[grp][key] = s.value;
+  if (grp === 'lb' && key === 'map') state.lb.all = false;
   render();
 });
-
-const tip = document.getElementById('tip');
-document.addEventListener('pointermove', e => {
-  const t = e.target.closest && e.target.closest('[data-tip]');
-  if (!t) { tip.style.display = 'none'; return; }
-  tip.textContent = t.dataset.tip; tip.style.display = 'block';
-  const w = tip.offsetWidth, h = tip.offsetHeight;
-  let x = e.clientX + 14, y = e.clientY + 14;
-  if (x + w > innerWidth - 8) x = e.clientX - w - 14;
-  if (y + h > innerHeight - 8) y = e.clientY - h - 14;
-  tip.style.left = Math.max(8, x) + 'px'; tip.style.top = Math.max(8, y) + 'px';
+main.addEventListener('click', e => {
+  const th = e.target.closest('th[data-sort]');
+  if (th) {
+    const [id, key] = th.dataset.sort.split(':');
+    const [cur, dir] = state.sort[id];
+    const textCol = key === 'team' || key === 'map' || key === 'player';
+    state.sort[id] = [key, cur === key ? (dir === 'asc' ? 'desc' : 'asc') : (textCol || ['pace', 'best', 'gap', 'pb', 'avg', 'rank'].includes(key) ? 'asc' : 'desc')];
+    render(); return;
+  }
+  const tg = e.target.closest('[data-toggle]');
+  if (tg) { const [g, k] = tg.dataset.toggle.split('.'); state[g][k] = !state[g][k]; render(); return; }
+  if (e.target.closest('[data-swap]')) { [state.h2h.a, state.h2h.b] = [state.h2h.b, state.h2h.a]; render(); }
 });
-document.addEventListener('pointerleave', () => tip.style.display = 'none');
-matchMedia('(prefers-color-scheme: dark)').addEventListener('change', render);
 
-const REFRESH_MIN = 5;
+const THEMES = ['auto', 'light', 'dark'];
+let theme = 'auto';
+try { theme = localStorage.getItem('theme') || 'auto'; } catch {}
+function applyTheme() {
+  if (theme === 'auto') document.documentElement.removeAttribute('data-theme');
+  else document.documentElement.setAttribute('data-theme', theme);
+  document.getElementById('theme').textContent = 'Theme: ' + theme[0].toUpperCase() + theme.slice(1);
+}
+document.getElementById('theme').addEventListener('click', () => {
+  theme = THEMES[(THEMES.indexOf(theme) + 1) % THEMES.length];
+  try { localStorage.setItem('theme', theme); } catch {}
+  applyTheme(); render();
+});
+matchMedia('(prefers-color-scheme: dark)').addEventListener('change', render);
+applyTheme();
+
+document.getElementById('share').addEventListener('click', async e => {
+  const b = e.currentTarget;
+  try { await navigator.clipboard.writeText(location.href); b.textContent = 'Link copied'; }
+  catch { b.textContent = 'Copy from address bar'; }
+  setTimeout(() => { b.textContent = 'Copy link'; }, 2000);
+});
+
+// ---------- loading & auto-refresh ----------
+
 let lastText = '', lastChecked = 0;
 const clock = d => d.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
 const meta = document.getElementById('meta');
 const metaText = () => `${RUNS.length.toLocaleString()} valid rounds · checked ${clock(new Date(lastChecked))} · auto-refreshes every ${REFRESH_MIN} min`;
 
 function showError(msg) {
-  RUNS = []; lastText = '';
-  meta.textContent = 'Data failed to load';
+  RUNS = []; MATCHES = []; lastText = '';
+  meta.textContent = 'Data failed to load'; meta.classList.add('warn');
   main.innerHTML = `<div class="error"><b>Couldn't load the stats.</b><p>${esc(msg)}</p></div>`;
 }
 
@@ -597,18 +1032,21 @@ async function load(background = false) {
     if (!res.ok) throw new Error(`The Google Sheet didn't respond (HTTP ${res.status}). Check that it's shared as "Anyone with the link can view".`);
     text = await res.text();
   } catch (err) {
-    if (background && RUNS.length) { meta.textContent = `${metaText()} · update failed at ${clock(new Date())}, retrying`; return; }
+    if (background && RUNS.length) { meta.textContent = `${metaText()} · update failed at ${clock(new Date())}, retrying`; meta.classList.add('warn'); return; }
     showError(err.message);
     return;
   }
   lastChecked = Date.now();
+  meta.classList.remove('warn');
   if (text === lastText && RUNS.length) { meta.textContent = metaText(); return; }
   try {
     const runs = buildRuns(parseCSV(text));
     if (!runs.length) throw new Error('The sheet loaded but has no valid rounds.');
-    RUNS = runs; lastText = text;
+    RUNS = runs; MATCHES = buildMatches(runs); lastText = text;
     meta.textContent = metaText();
+    const keepScroll = scrollY;
     render();
+    if (background) scrollTo(0, keepScroll);
   } catch (err) {
     showError(err.message);
   }
@@ -618,13 +1056,10 @@ setInterval(() => { if (document.visibilityState === 'visible') load(true); }, R
 document.addEventListener('visibilitychange', () => {
   if (document.visibilityState === 'visible' && Date.now() - lastChecked > REFRESH_MIN * 60 * 1000) load(true);
 });
+addEventListener('hashchange', () => { readHash(); render(); });
 
-function tabFromHash() {
-  const h = location.hash.slice(1);
-  if (['overview', 'player', 'sectors'].includes(h)) state.tab = h;
-}
-addEventListener('hashchange', () => { tabFromHash(); render(); });
-tabFromHash();
+main.innerHTML = `<div class="tiles">${'<div class="sk" style="height:84px"></div>'.repeat(4)}</div><div class="grid2"><div class="sk" style="height:320px"></div><div class="sk" style="height:320px"></div></div>`;
+readHash();
 load();
 </script>
 </body>

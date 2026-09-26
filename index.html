@@ -203,6 +203,20 @@ tr.hl td { background: var(--accent-bg); }
 .hm-legend { display: flex; align-items: center; gap: 8px; font-size: 12.5px; color: var(--ink2); margin-bottom: 12px; flex-wrap: wrap; }
 .hm-grad { width: 140px; height: 10px; border-radius: 5px; }
 
+/* map records */
+.rec-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 12px; }
+.rec-card {
+  display: flex; flex-direction: column; gap: 3px; text-align: left; cursor: pointer;
+  background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px 16px;
+}
+.rec-card:hover { background: var(--accent-bg); }
+.rec-card .m { font-size: 13px; color: var(--ink2); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.rec-card .t { font-size: 26px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.rec-card .h { font-size: 14px; }
+.rec-card .s { font-size: 12px; color: var(--muted); }
+.rec-card .pill { margin-left: 4px; }
+@media (max-width: 560px) { .rec-grid { grid-template-columns: 1fr 1fr; gap: 8px; } .rec-card { padding: 10px 12px; } .rec-card .t { font-size: 20px; } }
+
 /* match results */
 .wk { font-size: 12px; font-weight: 600; color: var(--ink2); margin: 14px 0 6px; text-transform: uppercase; letter-spacing: .04em; }
 .wk:first-child { margin-top: 0; }
@@ -283,6 +297,7 @@ footer { margin-top: 28px; font-size: 12.5px; color: var(--muted); line-height: 
   <nav class="tabs" role="tablist">
     <button role="tab" data-tab="overview" aria-selected="true">Overview</button>
     <button role="tab" data-tab="leaders" aria-selected="false">Leaderboards</button>
+    <button role="tab" data-tab="records" aria-selected="false">Map Records</button>
     <button role="tab" data-tab="player" aria-selected="false">Player Profile</button>
     <button role="tab" data-tab="sectors" aria-selected="false">Sector Analysis</button>
     <button role="tab" data-tab="h2h" aria-selected="false">Head-to-Head</button>
@@ -609,10 +624,12 @@ function colChart(items, color, unit) {
   </div></div>`;
 }
 
-function lineChart(points, fmtY, yNote) {
+// opts.zero: keep 0 on the y-axis (default true). opts.step: draw a step line (a value that holds until it changes).
+function lineChart(points, fmtY, yNote, opts = {}) {
   if (!points.length) return EMPTY('Not enough finished runs to chart.');
+  const zero = opts.zero !== false;
   const ys = points.map(p => p.y);
-  const ticks = niceTicks(Math.min(0, ...ys), Math.max(0, ...ys), 4);
+  const ticks = zero ? niceTicks(Math.min(0, ...ys), Math.max(0, ...ys), 4) : niceTicks(Math.min(...ys), Math.max(...ys), 4);
   const lo = ticks[0], hi = ticks[ticks.length - 1];
   const py = v => (1 - (v - lo) / (hi - lo)) * 100;
   // x is positioned by value (e.g. week number), so a missing week leaves a gap
@@ -626,11 +643,11 @@ function lineChart(points, fmtY, yNote) {
   return `<div class="lc">
     <div class="lc-y">${ticks.map(t => `<span style="top:${py(t)}%">${fmtY(t)}</span>`).join('')}</div>
     <div class="lc-plot">
-      ${ticks.map(t => `<div class="lc-gl ${t === 0 ? 'zero' : ''}" style="top:${py(t)}%"></div>`).join('')}
+      ${ticks.map(t => `<div class="lc-gl ${t === 0 && zero ? 'zero' : ''}" style="top:${py(t)}%"></div>`).join('')}
       ${points.map((p, i) => `<div class="lc-hit" style="${band(i)}" ${tipAttr(p.label, ...p.tip)}></div>`).join('')}
       <svg viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
         <polyline fill="none" stroke="var(--s1)" stroke-width="2" vector-effect="non-scaling-stroke" stroke-linejoin="round"
-          points="${points.map((p, i) => `${px(i)},${py(p.y)}`).join(' ')}"/>
+          points="${points.map((p, i) => (opts.step && i ? `${px(i)},${py(points[i - 1].y)} ` : '') + `${px(i)},${py(p.y)}`).join(' ')}"/>
       </svg>
       ${points.map((p, i) => `<div class="lc-dot" style="left:${px(i)}%;top:${py(p.y)}%"></div>`).join('')}
     </div>
@@ -709,9 +726,9 @@ const mapOpts = () => uniq(RUNS, 'map').map(m => ({ value: m, label: shortMap(m)
 // ---------- state & URL ----------
 
 let RUNS = [], MATCHES = [];
-const TABS = ['overview', 'leaders', 'player', 'sectors', 'h2h'];
-const URL_KEYS = { overview: ['week', 'team'], leaders: ['map', 'min'], player: ['player', 'map'], sectors: ['map', 'min'], h2h: ['map', 'a', 'b'] };
-const GROUP = { overview: 'ov', leaders: 'lb', player: 'pl', sectors: 'sec', h2h: 'h2h' };
+const TABS = ['overview', 'leaders', 'records', 'player', 'sectors', 'h2h'];
+const URL_KEYS = { overview: ['week', 'team'], leaders: ['map', 'min'], records: ['map'], player: ['player', 'map'], sectors: ['map', 'min'], h2h: ['map', 'a', 'b'] };
+const GROUP = { overview: 'ov', leaders: 'lb', records: 'rec', player: 'pl', sectors: 'sec', h2h: 'h2h' };
 const state = {
   tab: 'overview',
   ov: { week: '', team: '' },
@@ -719,7 +736,8 @@ const state = {
   pl: { player: '', map: '' },
   sec: { map: '', min: '3' },
   h2h: { map: '', a: '', b: '' },
-  sort: { standings: ['standing', 'desc'], rank: ['pace', 'asc'], plmaps: ['pb', 'asc'], pbs: ['best', 'asc'] },
+  rec: { map: '', all: false },
+  sort: { rechist: ['week', 'desc'], recsec: ['cp', 'asc'], standings: ['standing', 'desc'], rank: ['pace', 'asc'], plmaps: ['pb', 'asc'], pbs: ['best', 'asc'] },
 };
 
 function readHash() {
@@ -849,6 +867,117 @@ function renderLeaders() {
           { key: 'n', label: 'Rounds', num: true, fmt: fN },
         ], rankRows, 'rank', { rank: true, empty: 'No players with that many rounds.' })}
       </div>
+    </div>`;
+}
+
+// Record progression on one map, in sheet order (the sheet is in the order matches were played).
+function recordHistory(mapRuns) {
+  const events = []; let best = null;
+  for (const r of mapRuns.filter(r => r.final != null).sort((a, b) => a.sheetRow - b.sheetRow)) {
+    if (!best || r.final < best.final) { events.push({ run: r, prev: best }); best = r; }
+  }
+  return events;
+}
+
+function renderRecords() {
+  const f = state.rec;
+  const maps = uniq(RUNS, 'map');
+  if (f.map && !maps.includes(f.map)) f.map = '';
+
+  if (!f.map) {
+    const book = maps.map(m => { const h = recordHistory(RUNS.filter(r => r.map === m)); return { map: m, cur: h[h.length - 1], broken: Math.max(h.length - 1, 0) }; })
+      .filter(b => b.cur);
+    const held = new Map();
+    for (const b of book) held.set(b.cur.run.player, (held.get(b.cur.run.player) || 0) + 1);
+    const most = Math.max(0, ...held.values());
+    const leaders = [...held].filter(([, n]) => n === most).map(([p]) => p);
+    return `
+      <div class="tiles">
+        ${tile('Maps', fN(book.length), 'one record each')}
+        ${tile('Record holders', fN(held.size), 'players holding a record now')}
+        ${tile('Most records', fN(most), esc(leaders.join(', ')))}
+        ${tile('Records broken', fN(sum(book.map(b => b.broken))), 'since the first week')}
+      </div>
+      <div class="rec-grid">${book.map(b => {
+        const r = b.cur.run;
+        return `<button class="rec-card" type="button" data-recmap="${esc(b.map)}">
+          <span class="m">${esc(shortMap(b.map))}</span>
+          <span class="t">${fS(r.final / 1000)}s</span>
+          <span class="h">${esc(r.player)} <span class="pill">${esc(r.team)}</span></span>
+          <span class="s">Set in ${r.week != null ? 'Week ' + r.week : esc(r.match)} · broken ${b.broken} time${b.broken === 1 ? '' : 's'}</span>
+        </button>`;
+      }).join('')}</div>
+      <p class="note" style="margin-top:12px">Tap a map for its record history and sector records.</p>`;
+  }
+
+  const mapRuns = RUNS.filter(r => r.map === f.map);
+  const hist = recordHistory(mapRuns);
+  const cur = hist[hist.length - 1]?.run;
+  const first = hist[0]?.run;
+
+  const weeks = weeksOf(mapRuns);
+  let best = null, holder = null;
+  const points = weeks.map(w => {
+    const before = best;
+    for (const r of mapRuns) if (r.week === w && r.final != null && (best == null || r.final < best)) { best = r.final; holder = r; }
+    if (best == null) return null;
+    const changed = before == null || best < before;
+    return { x: w, label: 'Week ' + w, short: 'W' + w, y: best / 1000,
+      tip: [`Record ${fS(best / 1000)}s`, `held by ${holder.player}`, changed ? (before == null ? 'First week played' : `New record, ${fS((before - best) / 1000)}s faster`) : 'No change this week'] };
+  }).filter(Boolean);
+
+  const histRows = [...hist].reverse().map(e => ({
+    week: e.run.week, player: e.run.player, team: e.run.team, time: e.run.final / 1000,
+    imp: e.prev ? (e.prev.final - e.run.final) / 1000 : null, match: e.run.match, round: e.run.round,
+  }));
+
+  // sector records: best time through each sector by anyone, against the record run's own split
+  const secBest = new Map();
+  for (const r of mapRuns) for (const s of r.splits) {
+    const b = secBest.get(s.cp);
+    if (!b || s.seg < b.seg) secBest.set(s.cp, { seg: s.seg, run: r });
+  }
+  const curSplits = new Map((cur?.splits || []).map(s => [s.cp, s.seg]));
+  const secRows = [...secBest].sort((a, b) => a[0] - b[0]).map(([cp, b]) => ({
+    cp, rec: b.seg / 1000, holder: b.run.player, week: b.run.week,
+    mine: curSplits.has(cp) ? curSplits.get(cp) / 1000 : null,
+    gap: curSplits.has(cp) ? (curSplits.get(cp) - b.seg) / 1000 : null,
+  }));
+  const sob = sum(secRows.map(s => s.rec));
+
+  return `
+    <div class="filters">
+      <button class="btn swap" type="button" data-recmap="">← All maps</button>
+      ${select('rec.map', 'Map', maps.map(m => ({ value: m, label: shortMap(m) })), f.map)}
+    </div>
+    <div class="tiles">
+      ${tile('Record', cur ? fS(cur.final / 1000) + 's' : '–', cur ? esc(`${cur.player} · ${cur.team}`) : '')}
+      ${tile('Set in', cur?.week != null ? 'Week ' + cur.week : '–', cur ? esc(`${cur.match}, round ${cur.round}`) : '')}
+      ${tile('Times broken', fN(Math.max(hist.length - 1, 0)), `${fN(new Set(hist.map(e => e.run.player)).size)} different holders`)}
+      ${tile('Improvement', first && cur ? fS((first.final - cur.final) / 1000) + 's' : '–', first ? `from ${fS(first.final / 1000)}s in ${first.week != null ? 'Week ' + first.week : 'the first match'}` : '')}
+    </div>
+    <div class="grid2">
+      <div class="card"><h2>Record by week</h2><p class="note">The standing record at the end of each week. Each step down is a new record.</p>
+        ${lineChart(points, v => v.toFixed(1) + 's', '', { zero: false, step: true })}</div>
+      <div class="card"><h2>Record history</h2><p class="note">Newest first. Within a week, order follows the sheet.</p>
+        ${table([
+          { key: 'week', label: 'Week', num: true, fmt: v => v ?? '–' },
+          { key: 'player', label: 'Player' },
+          { key: 'time', label: 'Time', num: true, fmt: fS },
+          { key: 'imp', label: 'Faster by', num: true, fmt: v => v == null ? 'first' : fS(v) + 's' },
+        ], histRows, 'rechist', { limit: 8, showAll: f.all, toggle: 'rec.all' })}
+      </div>
+    </div>
+    <div class="card"><div class="card-head"><div><h2>Sector records</h2>
+      <p class="note">The fastest anyone has driven each sector, next to the record run's own split. All sector records added up: <b>${fS(sob)}s</b>.</p></div>
+      <button class="btn" type="button" data-goto="leaders">Full leaderboard →</button></div>
+      ${table([
+        { key: 'cp', label: 'Sector', fmt: v => 'CP' + v },
+        { key: 'rec', label: 'Sector record', num: true, fmt: fS },
+        { key: 'holder', label: 'Held by' },
+        { key: 'mine', label: 'Record run', num: true, fmt: fS },
+        { key: 'gap', label: 'Gap', num: true, fmt: v => v == null ? '–' : v === 0 ? 'same' : '+' + fS(v) },
+      ], secRows, 'recsec')}
     </div>`;
 }
 
@@ -1020,7 +1149,7 @@ function render() {
   hideTip();
   document.querySelectorAll('nav.tabs button').forEach(b => b.setAttribute('aria-selected', String(b.dataset.tab === state.tab)));
   if (!RUNS.length) return;
-  const fn = { overview: renderOverview, leaders: renderLeaders, player: renderPlayer, sectors: renderSectors, h2h: renderH2H }[state.tab];
+  const fn = { overview: renderOverview, leaders: renderLeaders, records: renderRecords, player: renderPlayer, sectors: renderSectors, h2h: renderH2H }[state.tab];
   main.innerHTML = fn();
   writeHash();
 }
@@ -1095,7 +1224,10 @@ main.addEventListener('click', e => {
   }
   const tg = e.target.closest('[data-toggle]');
   if (tg) { const [g, k] = tg.dataset.toggle.split('.'); state[g][k] = !state[g][k]; render(); return; }
-  if (e.target.closest('[data-swap]')) { [state.h2h.a, state.h2h.b] = [state.h2h.b, state.h2h.a]; render(); }
+  if (e.target.closest('[data-swap]')) { [state.h2h.a, state.h2h.b] = [state.h2h.b, state.h2h.a]; render(); return; }
+  const rm = e.target.closest('[data-recmap]');
+  if (rm) { state.rec.map = rm.dataset.recmap; state.rec.all = false; render(); scrollTo(0, 0); return; }
+  if (e.target.closest('[data-goto="leaders"]')) { state.tab = 'leaders'; state.lb.map = state.rec.map; state.lb.all = false; render(); scrollTo(0, 0); }
 });
 
 const THEMES = ['auto', 'light', 'dark'];
